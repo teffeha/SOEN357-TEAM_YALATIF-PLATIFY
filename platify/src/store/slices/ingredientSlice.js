@@ -1,23 +1,43 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { getIngredientCategories, getIngredients, initializeIngredientData } from '../../services/ingredientStorage';
 
-// Async thunk for fetching ingredients from Firestore
+// Async thunk for fetching ingredient categories from AsyncStorage
+export const fetchIngredientCategories = createAsyncThunk(
+  'ingredients/fetchCategories',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Initialize ingredient data if needed
+      await initializeIngredientData();
+      
+      // Get categories from AsyncStorage
+      const categories = await getIngredientCategories();
+      
+      // Sort categories alphabetically by name
+      return categories.sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Async thunk for fetching ingredients from AsyncStorage
 export const fetchIngredients = createAsyncThunk(
   'ingredients/fetch',
   async (_, { rejectWithValue }) => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'ingredients'));
-      const ingredients = [];
+      // Initialize ingredient data if needed
+      await initializeIngredientData();
       
-      querySnapshot.forEach((doc) => {
-        ingredients.push({
-          id: doc.id,
-          ...doc.data()
-        });
-      });
+      // Get ingredients from AsyncStorage
+      const ingredients = await getIngredients();
       
-      return ingredients;
+      // Add unique IDs if they don't exist
+      const ingredientsWithIds = ingredients.map((ingredient, index) => ({
+        ...ingredient,
+        id: ingredient.id || `ingredient_${index}`
+      }));
+      
+      return ingredientsWithIds;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -26,7 +46,9 @@ export const fetchIngredients = createAsyncThunk(
 
 const initialState = {
   ingredients: [],
+  categories: [],
   selectedIngredients: [],
+  selectedCategory: null,
   isLoading: false,
   error: null
 };
@@ -48,10 +70,30 @@ const ingredientSlice = createSlice({
     },
     clearSelectedIngredients: (state) => {
       state.selectedIngredients = [];
+    },
+    setSelectedCategory: (state, action) => {
+      state.selectedCategory = action.payload;
+    },
+    clearSelectedCategory: (state) => {
+      state.selectedCategory = null;
     }
   },
   extraReducers: (builder) => {
     builder
+      // Handle fetchIngredientCategories
+      .addCase(fetchIngredientCategories.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchIngredientCategories.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.categories = action.payload;
+      })
+      .addCase(fetchIngredientCategories.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Handle fetchIngredients
       .addCase(fetchIngredients.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -70,7 +112,9 @@ const ingredientSlice = createSlice({
 export const { 
   addIngredient, 
   removeIngredient, 
-  clearSelectedIngredients 
+  clearSelectedIngredients,
+  setSelectedCategory,
+  clearSelectedCategory
 } = ingredientSlice.actions;
 
 export default ingredientSlice.reducer;

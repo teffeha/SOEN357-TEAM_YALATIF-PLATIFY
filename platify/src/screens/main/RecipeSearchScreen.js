@@ -1,33 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { 
-  Box, 
-  Text, 
-  Heading, 
-  VStack, 
-  HStack, 
-  Center, 
-  NativeBaseProvider,
-  Icon,
-  Input,
-  Button,
-  Spinner,
-  Select,
-  CheckIcon,
-  FormControl,
-  Slider,
-  Badge,
-  Pressable,
-  ScrollView,
-  Divider,
-  Chip
+import {
+  Box, Text, Heading, VStack, HStack, Icon, Input, Button,
+  Spinner, Select, CheckIcon, FormControl, Slider, Badge,
+  Pressable, ScrollView, Divider, FlatList, useToast
 } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchIngredients } from '../../store/slices/ingredientSlice';
+import { fetchIngredients, fetchIngredientCategories } from '../../store/slices/ingredientSlice';
 import { fetchRecipes, clearRecipes } from '../../store/slices/recipeSlice';
-import { addIngredient, removeIngredient, clearSelectedIngredients } from '../../store/slices/ingredientSlice';
+import {
+  addIngredient, removeIngredient, clearSelectedIngredients,
+  setSelectedCategory, clearSelectedCategory
+} from '../../store/slices/ingredientSlice';
+import { initializeIngredientData } from '../../services/ingredientStorage';
 
+// Recipe Card Component
 const RecipeCard = ({ recipe, onPress }) => {
   // Map skill level to color
   const getSkillColor = (level) => {
@@ -50,39 +38,43 @@ const RecipeCard = ({ recipe, onPress }) => {
         borderLeftWidth={4}
         borderLeftColor={getSkillColor(recipe.skill_level)}
       >
-        <HStack justifyContent="space-between" alignItems="center">
-          <VStack space={1} flex={1}>
-            <Text fontSize="md" fontWeight="bold" numberOfLines={1}>
-              {recipe.name}
-            </Text>
-            <HStack space={2} alignItems="center">
-              <Icon as={Ionicons} name="time-outline" size="xs" color="gray.500" />
-              <Text fontSize="xs" color="gray.500">
-                {recipe.time_estimate}
-              </Text>
-            </HStack>
-          </VStack>
-          <Badge 
-            colorScheme={
-              recipe.skill_level === 'beginner' ? 'green' : 
-              recipe.skill_level === 'intermediate' ? 'orange' : 'red'
-            }
-            variant="solid"
-            rounded="full"
-            _text={{ fontSize: 'xs' }}
-          >
-            {recipe.skill_level}
-          </Badge>
-        </HStack>
+        <VStack space={2}>
+          <Heading size="md" color="coolGray.800">
+            {recipe.title}
+          </Heading>
+          
+          <Text color="coolGray.600" numberOfLines={2}>
+            {recipe.description}
+          </Text>
+          
+          <HStack space={2} mt={1}>
+            <Badge colorScheme="green" variant="subtle" rounded="md">
+              {recipe.cooking_time} mins
+            </Badge>
+            
+            <Badge colorScheme="blue" variant="subtle" rounded="md">
+              {recipe.portions} portions
+            </Badge>
+            
+            <Badge 
+              colorScheme={recipe.skill_level === 'beginner' ? 'green' : recipe.skill_level === 'intermediate' ? 'orange' : 'red'} 
+              variant="subtle" 
+              rounded="md"
+            >
+              {recipe.skill_level}
+            </Badge>
+          </HStack>
+        </VStack>
       </Box>
     </Pressable>
   );
 };
 
+// Main Screen Component
 const RecipeSearchScreen = ({ navigation }) => {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-  const { ingredients, selectedIngredients } = useSelector((state) => state.ingredients);
+  const toast = useToast();
+  const { ingredients, categories, selectedIngredients, selectedCategory } = useSelector((state) => state.ingredients);
   const { recipes, isLoading } = useSelector((state) => state.recipes);
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,32 +82,96 @@ const RecipeSearchScreen = ({ navigation }) => {
   const [days, setDays] = useState(1);
   const [diet, setDiet] = useState('');
   const [skill, setSkill] = useState('beginner');
+  const [allergies, setAllergies] = useState([]);
+  const [cookingTime, setCookingTime] = useState(60);
   const [filteredIngredients, setFilteredIngredients] = useState([]);
+  const [showCategoryView, setShowCategoryView] = useState(true);
   
-  // Fetch ingredients from Firestore on component mount
+  // Initialize and fetch ingredients and categories
   useEffect(() => {
-    dispatch(fetchIngredients());
+    const fetchData = async () => {
+      try {
+        // Initialize ingredient data in AsyncStorage
+        await initializeIngredientData();
+        
+        // Fetch categories and ingredients from AsyncStorage
+        await dispatch(fetchIngredientCategories()).unwrap();
+        await dispatch(fetchIngredients()).unwrap();
+      } catch (error) {
+        console.error('Error initializing ingredient data:', error);
+        toast.show({
+          description: "Error loading ingredients",
+          status: "error",
+          duration: 3000
+        });
+      }
+    };
+    
+    fetchData();
+    
     return () => {
       dispatch(clearRecipes());
     };
-  }, [dispatch]);
+  }, [dispatch, toast]);
   
-  // Filter ingredients based on search query
+  // Filter ingredients based on search or category
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredIngredients([]);
-    } else {
-      const filtered = ingredients.filter(
+    if (searchQuery.trim() !== '') {
+      const filtered = uniqueIngredients.filter(
         ing => ing.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredIngredients(filtered);
+      setShowCategoryView(false);
+    } else if (selectedCategory) {
+      const filtered = uniqueIngredients.filter(
+        ing => ing.category === selectedCategory.id
+      );
+      setFilteredIngredients(filtered);
+      setShowCategoryView(false);
+    } else {
+      setFilteredIngredients([]);
+      setShowCategoryView(true);
     }
-  }, [searchQuery, ingredients]);
+  }, [searchQuery, uniqueIngredients, selectedCategory]);
+  
+  // Ensure categories have unique IDs
+  const uniqueCategories = categories.reduce((acc, current) => {
+    const x = acc.find(item => item.id === current.id);
+    if (!x) {
+      return acc.concat([current]);
+    } else {
+      return acc;
+    }
+  }, []);
+  
+  // Ensure ingredients have unique IDs
+  const uniqueIngredients = ingredients.reduce((acc, current) => {
+    const x = acc.find(item => item.id === current.id);
+    if (!x) {
+      return acc.concat([current]);
+    } else {
+      return acc;
+    }
+  }, []);
+  
+  // Handler functions
+  const handleCategorySelect = (category) => {
+    dispatch(setSelectedCategory(category));
+  };
+  
+  const handleBackToCategories = () => {
+    setSearchQuery('');
+    dispatch(clearSelectedCategory());
+    setShowCategoryView(true);
+  };
   
   const handleAddIngredient = (ingredient) => {
     dispatch(addIngredient(ingredient));
-    setSearchQuery('');
-    setFilteredIngredients([]);
+    toast.show({
+      description: `${ingredient.name} added`,
+      placement: "top",
+      duration: 1500
+    });
   };
   
   const handleRemoveIngredient = (id) => {
@@ -128,6 +184,12 @@ const RecipeSearchScreen = ({ navigation }) => {
   
   const handleSearch = () => {
     if (selectedIngredients.length === 0) {
+      toast.show({
+        description: "Please select at least one ingredient",
+        placement: "top",
+        status: "warning",
+        duration: 2000
+      });
       return;
     }
     
@@ -136,7 +198,9 @@ const RecipeSearchScreen = ({ navigation }) => {
       portions,
       days,
       diet: diet || undefined,
-      skill
+      skill,
+      allergies,
+      maxCookingTime: cookingTime
     };
     
     dispatch(fetchRecipes(recipeParams));
@@ -146,198 +210,403 @@ const RecipeSearchScreen = ({ navigation }) => {
     navigation.navigate('RecipeDetail', { recipe });
   };
 
+  // Helper function to get icon for category
+  const getCategoryIcon = (categoryId) => {
+    switch(categoryId) {
+      case 'vegetables': return 'leaf';
+      case 'fruits': return 'nutrition';
+      case 'proteins': return 'fitness';
+      case 'dairy': return 'water';
+      case 'grains': return 'grid';
+      case 'legumes': return 'apps';
+      case 'herbs_spices': return 'flower';
+      case 'sauces_condiments': return 'flask';
+      default: return 'restaurant';
+    }
+  };
+
   return (
-      <Box flex={1} bg="gray.100" safeArea>
-        <ScrollView>
+    <Box flex={1} bg="gray.50" safeArea>
+      <FlatList
+        data={[{ key: 'content' }]}
+        renderItem={() => (
           <VStack space={4} p={4}>
-            <Heading size="lg" color="coolGray.800">
-              Recipe Search
-            </Heading>
+          {/* Header */}
+          <Heading size="lg" color="coolGray.800">Find Recipes</Heading>
+          
+          {/* Ingredient Selection */}
+          <Box bg="white" p={4} rounded="xl" shadow={1}>
+            {/* Search Bar */}
+            <Input
+              placeholder="Search ingredients..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              mb={4}
+              size="lg"
+              borderRadius="full"
+              InputLeftElement={
+                <Icon as={Ionicons} name="search" size="sm" color="gray.400" ml={3} />
+              }
+              InputRightElement={
+                (searchQuery || selectedCategory) ? (
+                  <Pressable onPress={handleBackToCategories} mr={3}>
+                    <Icon as={Ionicons} name="close-circle" size="sm" color="gray.400" />
+                  </Pressable>
+                ) : null
+              }
+            />
             
-            <FormControl>
-              <FormControl.Label>Ingredients</FormControl.Label>
-              <Input
-                placeholder="Search ingredients..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                InputRightElement={
-                  searchQuery ? (
-                    <Pressable onPress={() => setSearchQuery('')} mr={2}>
-                      <Icon as={Ionicons} name="close-outline" size="sm" color="gray.400" />
+            {/* Category or Ingredient View */}
+            {showCategoryView ? (
+              <Box>
+                <Heading size="sm" mb={3}>Categories</Heading>
+                <Box flexDirection="row" flexWrap="wrap">
+                  {uniqueCategories.map(item => (
+                    <Box key={item.id} width="50%" p={1}>
+                    <Pressable 
+                      onPress={() => handleCategorySelect(item)}
+                      bg="coolGray.50"
+                      p={3}
+                      m={1}
+                      flex={1}
+                      rounded="lg"
+                      alignItems="center"
+                      justifyContent="center"
+                      height={24}
+                      shadow={1}
+                    >
+                      <Icon
+                        as={Ionicons}
+                        name={getCategoryIcon(item.id)}
+                        size={6}
+                        color="green.600"
+                        mb={2}
+                      />
+                      <Text textAlign="center" fontWeight="medium">{item.name}</Text>
                     </Pressable>
-                  ) : null
-                }
-              />
-              
-              {/* Ingredient search results */}
-              {filteredIngredients.length > 0 && (
-                <Box
-                  bg="white"
-                  shadow={2}
-                  rounded="md"
-                  mt={1}
-                  maxH="200"
-                >
-                  <FlatList
-                    data={filteredIngredients}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                      <Pressable
-                        p={3}
-                        borderBottomWidth={1}
-                        borderBottomColor="gray.200"
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            ) : (
+              <Box>
+                {/* Ingredient List Header */}
+                <HStack justifyContent="space-between" alignItems="center" mb={3}>
+                  <Heading size="sm">
+                    {selectedCategory ? selectedCategory.name : 'Search Results'}
+                  </Heading>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    leftIcon={<Icon as={Ionicons} name="arrow-back" />} 
+                    onPress={handleBackToCategories}
+                  >
+                    Back
+                  </Button>
+                </HStack>
+                
+                {/* Ingredient List */}
+                {filteredIngredients.length > 0 ? (
+                  <Box flexDirection="row" flexWrap="wrap">
+                    {filteredIngredients.map(item => (
+                      <Box key={item.id} width="50%" p={1}>
+                      <Pressable 
                         onPress={() => handleAddIngredient(item)}
-                      >
-                        <Text>{item.name}</Text>
-                      </Pressable>
-                    )}
-                  />
-                </Box>
-              )}
-              
-              {/* Selected ingredients */}
-              {selectedIngredients.length > 0 && (
-                <Box mt={4}>
-                  <HStack justifyContent="space-between" alignItems="center" mb={2}>
-                    <Text fontWeight="medium">Selected Ingredients</Text>
-                    <Pressable onPress={handleClearIngredients}>
-                      <Text color="red.500" fontSize="sm">Clear All</Text>
-                    </Pressable>
-                  </HStack>
-                  <HStack flexWrap="wrap">
-                    {selectedIngredients.map((item) => (
-                      <Chip
-                        key={item.id}
+                        bg="coolGray.50"
+                        p={3}
                         m={1}
-                        colorScheme="green"
-                        onClose={() => handleRemoveIngredient(item.id)}
+                        flex={1}
+                        rounded="lg"
+                        alignItems="center"
+                        shadow={1}
                       >
-                        {item.name}
-                      </Chip>
+                        <Text fontWeight="medium" mb={2}>{item.name}</Text>
+                        <Button 
+                          size="sm" 
+                          colorScheme="green"
+                          rounded="full"
+                          leftIcon={<Icon as={Ionicons} name="add" size="xs" />}
+                          onPress={() => handleAddIngredient(item)}
+                        >
+                          Add
+                        </Button>
+                      </Pressable>
+                      </Box>
                     ))}
-                  </HStack>
+                  </Box>
+                ) : (
+                  <Text color="muted.500" textAlign="center" py={4}>No ingredients found</Text>
+                )}
+              </Box>
+            )}
+            
+            {/* Selected Ingredients */}
+            <Box mt={6}>
+              <HStack justifyContent="space-between" alignItems="center" mb={2}>
+                <Heading size="sm">Selected Ingredients</Heading>
+                {selectedIngredients.length > 0 && (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="red"
+                    onPress={handleClearIngredients}
+                  >
+                    Clear All
+                  </Button>
+                )}
+              </HStack>
+              
+              <HStack flexWrap="wrap">
+                {selectedIngredients.length > 0 ? (
+                  selectedIngredients.map((item) => (
+                    <Badge
+                      key={item.id}
+                      colorScheme="green"
+                      variant="solid"
+                      m={1}
+                      p={1}
+                      px={2}
+                      borderRadius="full"
+                      _text={{ fontSize: 'xs' }}
+                      endIcon={
+                        <Icon
+                          as={Ionicons}
+                          name="close-circle"
+                          size="xs"
+                          color="white"
+                          ml={1}
+                          onPress={() => handleRemoveIngredient(item.id)}
+                        />
+                      }
+                    >
+                      {item.name}
+                    </Badge>
+                  ))
+                ) : (
+                  <Text color="muted.500" py={2}>No ingredients selected</Text>
+                )}
+              </HStack>
+            </Box>
+          </Box>
+          
+          {/* Recipe Options */}
+          <Box bg="white" p={5} rounded="xl" shadow={2} mb={4}>
+            <HStack justifyContent="space-between" alignItems="center" mb={4}>
+              <Heading size="sm">Recipe Options</Heading>
+              <Icon as={Ionicons} name="options-outline" size="sm" color="green.500" />
+            </HStack>
+            
+            {/* Portions and Days */}
+            <Box bg="coolGray.50" p={4} rounded="lg" mb={4}>
+              <FormControl mb={5}>
+                <HStack justifyContent="space-between" alignItems="center" mb={1}>
+                  <FormControl.Label _text={{ fontWeight: "medium" }}>Portions</FormControl.Label>
+                  <Badge colorScheme="green" rounded="full" variant="solid">
+                    {portions}
+                  </Badge>
+                </HStack>
+                <Slider
+                  defaultValue={4}
+                  minValue={1}
+                  maxValue={10}
+                  step={1}
+                  onChange={v => setPortions(v)}
+                  colorScheme="green"
+                >
+                  <Slider.Track>
+                    <Slider.FilledTrack />
+                  </Slider.Track>
+                  <Slider.Thumb shadow={2} />
+                </Slider>
+              </FormControl>
+              
+              <FormControl>
+                <HStack justifyContent="space-between" alignItems="center" mb={1}>
+                  <FormControl.Label _text={{ fontWeight: "medium" }}>Days for Meal Plan</FormControl.Label>
+                  <Badge colorScheme="green" rounded="full" variant="solid">
+                    {days}
+                  </Badge>
+                </HStack>
+                <Slider
+                  defaultValue={1}
+                  minValue={1}
+                  maxValue={7}
+                  step={1}
+                  onChange={v => setDays(v)}
+                  colorScheme="green"
+                >
+                  <Slider.Track>
+                    <Slider.FilledTrack />
+                  </Slider.Track>
+                  <Slider.Thumb shadow={2} />
+                </Slider>
+              </FormControl>
+            </Box>
+            
+            {/* Max Cooking Time */}
+            <Box bg="coolGray.50" p={4} rounded="lg" mb={4}>
+              <FormControl>
+                <HStack justifyContent="space-between" alignItems="center" mb={1}>
+                  <FormControl.Label _text={{ fontWeight: "medium" }}>Max Cooking Time</FormControl.Label>
+                  <Badge colorScheme="green" rounded="full" variant="solid">
+                    {cookingTime} min
+                  </Badge>
+                </HStack>
+                <Slider
+                  defaultValue={60}
+                  minValue={15}
+                  maxValue={180}
+                  step={15}
+                  onChange={v => setCookingTime(v)}
+                  colorScheme="green"
+                >
+                  <Slider.Track>
+                    <Slider.FilledTrack />
+                  </Slider.Track>
+                  <Slider.Thumb shadow={2} />
+                </Slider>
+              </FormControl>
+            </Box>
+            
+            {/* Diet and Skill Level */}
+            <Box bg="coolGray.50" p={4} rounded="lg" mb={4}>
+              <HStack space={4}>
+                <FormControl flex={1}>
+                  <FormControl.Label _text={{ fontWeight: "medium" }}>Diet</FormControl.Label>
+                  <Select
+                    selectedValue={diet}
+                    accessibilityLabel="Diet"
+                    placeholder="Select diet"
+                    rounded="lg"
+                    _selectedItem={{
+                      bg: "green.100",
+                      endIcon: <CheckIcon size="5" />
+                    }}
+                    onValueChange={itemValue => setDiet(itemValue)}
+                    dropdownIcon={<Icon as={Ionicons} name="chevron-down" size="sm" mr={2} />}
+                  >
+                    <Select.Item label="None" value="" />
+                    <Select.Item label="Vegan" value="vegan" />
+                    <Select.Item label="Vegetarian" value="vegetarian" />
+                    <Select.Item label="Pescatarian" value="pescatarian" />
+                    <Select.Item label="Gluten-Free" value="gluten-free" />
+                    <Select.Item label="Dairy-Free" value="dairy-free" />
+                    <Select.Item label="Keto" value="keto" />
+                    <Select.Item label="Paleo" value="paleo" />
+                    <Select.Item label="Low-Carb" value="low-carb" />
+                    <Select.Item label="Low-Fat" value="low-fat" />
+                    <Select.Item label="Mediterranean" value="mediterranean" />
+                  </Select>
+                </FormControl>
+                
+                <FormControl flex={1}>
+                  <FormControl.Label _text={{ fontWeight: "medium" }}>Skill Level</FormControl.Label>
+                  <Select
+                    selectedValue={skill}
+                    accessibilityLabel="Skill"
+                    placeholder="Select skill"
+                    rounded="lg"
+                    _selectedItem={{
+                      bg: "green.100",
+                      endIcon: <CheckIcon size="5" />
+                    }}
+                    onValueChange={itemValue => setSkill(itemValue)}
+                    dropdownIcon={<Icon as={Ionicons} name="chevron-down" size="sm" mr={2} />}
+                  >
+                    <Select.Item label="Beginner" value="beginner" />
+                    <Select.Item label="Intermediate" value="intermediate" />
+                    <Select.Item label="Advanced" value="advanced" />
+                  </Select>
+                </FormControl>
+              </HStack>
+            </Box>
+            
+            {/* Allergies and Restrictions */}
+            <Box bg="coolGray.50" p={4} rounded="lg">
+              <FormControl>
+                <FormControl.Label _text={{ fontWeight: "medium" }}>Allergies & Restrictions</FormControl.Label>
+                <Box flexDirection="row" flexWrap="wrap" mt={2}>
+                  {[
+                    { id: 'nuts', label: 'Nuts' },
+                    { id: 'shellfish', label: 'Shellfish' },
+                    { id: 'eggs', label: 'Eggs' },
+                    { id: 'soy', label: 'Soy' },
+                    { id: 'wheat', label: 'Wheat' },
+                    { id: 'fish', label: 'Fish' },
+                    { id: 'peanuts', label: 'Peanuts' },
+                    { id: 'sesame', label: 'Sesame' }
+                  ].map(item => (
+                    <Pressable 
+                      key={item.id}
+                      onPress={() => {
+                        if (allergies.includes(item.id)) {
+                          setAllergies(allergies.filter(a => a !== item.id));
+                        } else {
+                          setAllergies([...allergies, item.id]);
+                        }
+                      }}
+                      mb={2}
+                      mr={2}
+                    >
+                      <Badge 
+                        colorScheme={allergies.includes(item.id) ? "red" : "gray"}
+                        variant={allergies.includes(item.id) ? "solid" : "outline"}
+                        rounded="full"
+                        px={3}
+                        py={1}
+                        _text={{ fontSize: 'xs' }}
+                        startIcon={
+                          allergies.includes(item.id) ? 
+                          <Icon as={Ionicons} name="close-circle" size="xs" mr={1} /> : 
+                          undefined
+                        }
+                      >
+                        {item.label}
+                      </Badge>
+                    </Pressable>
+                  ))}
                 </Box>
-              )}
-            </FormControl>
-            
-            <Divider my={2} />
-            
-            <FormControl>
-              <FormControl.Label>Portions ({portions})</FormControl.Label>
-              <Slider
-                defaultValue={4}
-                minValue={1}
-                maxValue={10}
-                step={1}
-                onChange={v => setPortions(v)}
-                colorScheme="green"
-              >
-                <Slider.Track>
-                  <Slider.FilledTrack />
-                </Slider.Track>
-                <Slider.Thumb />
-              </Slider>
-            </FormControl>
-            
-            <FormControl>
-              <FormControl.Label>Days for Meal Planning ({days})</FormControl.Label>
-              <Slider
-                defaultValue={1}
-                minValue={1}
-                maxValue={7}
-                step={1}
-                onChange={v => setDays(v)}
-                colorScheme="green"
-              >
-                <Slider.Track>
-                  <Slider.FilledTrack />
-                </Slider.Track>
-                <Slider.Thumb />
-              </Slider>
-            </FormControl>
-            
-            <FormControl>
-              <FormControl.Label>Dietary Restrictions</FormControl.Label>
-              <Select
-                selectedValue={diet}
-                minWidth="200"
-                accessibilityLabel="Choose dietary restriction"
-                placeholder="Choose dietary restriction"
-                _selectedItem={{
-                  bg: "green.100",
-                  endIcon: <CheckIcon size="5" />
-                }}
-                onValueChange={itemValue => setDiet(itemValue)}
-              >
-                <Select.Item label="None" value="" />
-                <Select.Item label="Vegan" value="vegan" />
-                <Select.Item label="Vegetarian" value="vegetarian" />
-                <Select.Item label="Gluten-Free" value="gluten-free" />
-                <Select.Item label="Dairy-Free" value="dairy-free" />
-                <Select.Item label="Keto" value="keto" />
-                <Select.Item label="Paleo" value="paleo" />
-              </Select>
-            </FormControl>
-            
-            <FormControl>
-              <FormControl.Label>Skill Level</FormControl.Label>
-              <Select
-                selectedValue={skill}
-                minWidth="200"
-                accessibilityLabel="Choose skill level"
-                placeholder="Choose skill level"
-                _selectedItem={{
-                  bg: "green.100",
-                  endIcon: <CheckIcon size="5" />
-                }}
-                onValueChange={itemValue => setSkill(itemValue)}
-              >
-                <Select.Item label="Beginner" value="beginner" />
-                <Select.Item label="Intermediate" value="intermediate" />
-                <Select.Item label="Advanced" value="advanced" />
-              </Select>
-            </FormControl>
-            
-            <Button
-              mt={4}
-              colorScheme="green"
-              onPress={handleSearch}
-              isDisabled={selectedIngredients.length === 0}
-              isLoading={isLoading}
-              isLoadingText="Searching"
-            >
-              Search Recipes
-            </Button>
-          </VStack>
+              </FormControl>
+            </Box>
+          </Box>
+          
+          {/* Search Button */}
+          <Button
+            size="lg"
+            colorScheme="green"
+            rounded="full"
+            shadow={2}
+            onPress={handleSearch}
+            isDisabled={selectedIngredients.length === 0}
+            isLoading={isLoading}
+            isLoadingText="Searching"
+            leftIcon={<Icon as={Ionicons} name="search" />}
+            mb={4}
+          >
+            Find Recipes
+          </Button>
           
           {/* Recipe Results */}
           {recipes.length > 0 && (
-            <VStack space={2} p={4}>
-              <Heading size="md" color="coolGray.800">
-                Recipe Results
-              </Heading>
-              
-              {recipes.map((recipe, index) => (
-                <RecipeCard
-                  key={index}
-                  recipe={recipe}
-                  onPress={() => handleRecipePress(recipe)}
-                />
-              ))}
-            </VStack>
+            <Box>
+              <Heading size="md" mb={3}>Recipe Results</Heading>
+              <Box>
+                {recipes.map((item, index) => (
+                  <RecipeCard
+                    key={`recipe-${index}-${item.name}`}
+                    recipe={item}
+                    onPress={() => handleRecipePress(item)}
+                  />
+                ))}
+              </Box>
+            </Box>
           )}
-          
-          {/* Loading state */}
-          {isLoading && (
-            <Center p={4}>
-              <Spinner size="lg" color="green.500" />
-              <Text mt={2} color="gray.500">
-                Generating recipes...
-              </Text>
-            </Center>
-          )}
-        </ScrollView>
-      </Box>
+        </VStack>
+        )}
+        keyExtractor={item => item.key}
+        showsVerticalScrollIndicator={false}
+      />
+    </Box>
   );
 };
 
