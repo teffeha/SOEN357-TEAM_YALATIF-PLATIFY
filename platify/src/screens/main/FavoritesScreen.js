@@ -8,7 +8,6 @@ import {
   VStack, 
   HStack, 
   Center, 
-  NativeBaseProvider,
   Icon,
   Pressable,
   Spinner,
@@ -54,35 +53,44 @@ const FavoritesScreen = ({ navigation }) => {
       default: return 'green.500';
     }
   };
+  
+  // Get badge color scheme based on skill level
+  const getBadgeColorScheme = (level) => {
+    switch(level) {
+      case 'beginner': return 'green';
+      case 'intermediate': return 'orange';
+      case 'advanced': return 'red';
+      default: return 'green';
+    }
+  };
 
   const renderItem = ({ item }) => (
     <Box 
-      bg="white" 
+      bg="darkCard" 
+      _light={{ bg: "white" }}
       rounded="lg" 
       shadow={2} 
       p={4} 
       m={2}
       borderLeftWidth={4}
       borderLeftColor={getSkillColor(item.skill_level)}
+      alignSelf="center"
     >
       <Pressable onPress={() => handleRecipePress(item)}>
         <HStack justifyContent="space-between" alignItems="center">
           <VStack space={1} flex={1}>
-            <Text fontSize="md" fontWeight="bold" numberOfLines={1}>
+            <Text fontSize="md" fontWeight="bold" numberOfLines={1} color="darkText" _light={{ color: "gray.800" }}>
               {item.name}
             </Text>
             <HStack space={2} alignItems="center">
-              <Icon as={Ionicons} name="time-outline" size="xs" color="gray.500" />
-              <Text fontSize="xs" color="gray.500">
+              <Icon as={Ionicons} name="time-outline" size="xs" color="darkSubtext" _light={{ color: "gray.500" }} />
+              <Text fontSize="xs" color="darkSubtext" _light={{ color: "gray.500" }}>
                 {item.time_estimate}
               </Text>
             </HStack>
           </VStack>
           <Badge 
-            colorScheme={
-              item.skill_level === 'beginner' ? 'green' : 
-              item.skill_level === 'intermediate' ? 'orange' : 'red'
-            }
+            colorScheme={getBadgeColorScheme(item.skill_level)}
             variant="solid"
             rounded="full"
             _text={{ fontSize: 'xs' }}
@@ -105,6 +113,7 @@ const FavoritesScreen = ({ navigation }) => {
         onPress={() => handleDeleteRecipe(item.id)}
         _pressed={{ opacity: 0.5 }}
         rounded="lg"
+        shadow={2}
       >
         <Icon as={Ionicons} name="trash" color="white" size="sm" />
       </Pressable>
@@ -112,18 +121,17 @@ const FavoritesScreen = ({ navigation }) => {
   );
 
   return (
-    <NativeBaseProvider>
-      <Box flex={1} bg="gray.100" safeArea>
-        <VStack space={4} flex={1} p={4}>
-          <Heading size="lg" color="coolGray.800">
+    <Box flex={1} bg="darkBg" _light={{ bg: "white" }} safeArea>
+      <VStack space={4} flex={1} p={4}>
+          <Heading size="lg" color="darkText" _light={{ color: "coolGray.800" }}>
             Favorite Recipes
           </Heading>
           
-          <Divider />
+          <Divider bg="darkBorder" _light={{ bg: "gray.200" }} />
           
           {isLoading ? (
             <Center flex={1}>
-              <Spinner size="lg" color="green.500" />
+              <Spinner size="lg" color="primary.400" _light={{ color: "green.500" }} />
             </Center>
           ) : favoriteRecipes.length > 0 ? (
             <SwipeListView
@@ -143,9 +151,11 @@ const FavoritesScreen = ({ navigation }) => {
                 as={Ionicons} 
                 name="heart-outline" 
                 size="4xl" 
-                color="gray.300" 
+                color="darkBorder" 
+                _light={{ color: "gray.300" }}
+                alignSelf="center"
               />
-              <Text color="gray.500" mt={2}>
+              <Text color="darkSubtext" _light={{ color: "gray.500"}} mt={2} alignSelf="center">
                 No favorite recipes yet
               </Text>
               <Pressable 
@@ -154,7 +164,11 @@ const FavoritesScreen = ({ navigation }) => {
                 px={4} 
                 py={2} 
                 rounded="md"
+                shadow={2}
+                width="280"
+                alignSelf="center"
                 onPress={() => navigation.navigate('Search')}
+                _pressed={{ opacity: 0.8 }}
               >
                 <Text color="white" fontWeight="medium">
                   Find Recipes
@@ -162,9 +176,8 @@ const FavoritesScreen = ({ navigation }) => {
               </Pressable>
             </Center>
           )}
-        </VStack>
-      </Box>
-    </NativeBaseProvider>
+      </VStack>
+    </Box>
   );
 };
 

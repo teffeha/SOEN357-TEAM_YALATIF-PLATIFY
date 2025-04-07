@@ -61,9 +61,14 @@ export default function App() {
     );
   }
 
-  // Define theme for NativeBase
+  // Define theme for NativeBase with comprehensive dark mode
   const theme = extendTheme({
+    config: {
+      initialColorMode: 'dark',
+      useSystemColorMode: false,
+    },
     colors: {
+      // Primary brand colors
       primary: {
         50: '#e6f2e6',
         100: '#c6e0c6',
@@ -76,12 +81,192 @@ export default function App() {
         800: '#1f461f',
         900: '#0f230f',
       },
+      // Custom dark mode colors
+      darkBg: '#121212',           // Main background
+      darkCard: '#1E1E1E',         // Card/container background
+      darkCardAlt: '#252525',      // Alternative card background
+      darkInput: '#2A2A2A',        // Input background
+      darkBorder: '#333333',       // Border color
+      darkBorderAlt: '#444444',    // Alternative border color
+      darkText: '#E1E1E1',         // Primary text
+      darkTextAlt: '#CCCCCC',      // Secondary text
+      darkSubtext: '#AAAAAA',      // Tertiary text
+      darkIcon: '#BBBBBB',         // Icon color
+      darkSuccess: '#43A047',      // Success color
+      darkError: '#E53935',        // Error color
+      darkWarning: '#FFB300',      // Warning color
+      darkInfo: '#039BE5',         // Info color
+      darkDisabled: '#666666',     // Disabled state
+      darkDivider: '#333333',      // Divider color
+      darkOverlay: 'rgba(0,0,0,0.7)', // Overlay color
+      darkHighlight: 'rgba(76,175,80,0.2)', // Highlight color
     },
+    // Global style overrides for dark mode
     components: {
       Button: {
         defaultProps: {
           colorScheme: 'primary',
         },
+        baseStyle: (props) => ({
+          _text: {
+            color: props.colorMode === 'dark' ? 'white' : undefined,
+          },
+          _icon: {
+            color: props.colorMode === 'dark' ? 'white' : undefined,
+          },
+        }),
+        variants: {
+          solid: (props) => ({
+            bg: props.colorMode === 'dark' ? 'primary.500' : undefined,
+            _pressed: {
+              bg: props.colorMode === 'dark' ? 'primary.600' : undefined,
+            },
+          }),
+          outline: (props) => ({
+            borderColor: props.colorMode === 'dark' ? 'primary.500' : undefined,
+            _text: {
+              color: props.colorMode === 'dark' ? 'primary.400' : undefined,
+            },
+            _pressed: {
+              bg: props.colorMode === 'dark' ? 'rgba(76,175,80,0.2)' : undefined,
+            },
+          }),
+          ghost: (props) => ({
+            _text: {
+              color: props.colorMode === 'dark' ? 'primary.400' : undefined,
+            },
+            _pressed: {
+              bg: props.colorMode === 'dark' ? 'rgba(76,175,80,0.2)' : undefined,
+            },
+          }),
+          subtle: (props) => ({
+            bg: props.colorMode === 'dark' ? 'rgba(76,175,80,0.2)' : undefined,
+            _text: {
+              color: props.colorMode === 'dark' ? 'primary.400' : undefined,
+            },
+            _pressed: {
+              bg: props.colorMode === 'dark' ? 'rgba(76,175,80,0.3)' : undefined,
+            },
+          }),
+        },
+      },
+      Box: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'darkBg' : 'white',
+        }),
+      },
+      Text: {
+        baseStyle: (props) => ({
+          color: props.colorMode === 'dark' ? 'darkText' : 'gray.800',
+        }),
+        variants: {
+          subtitle: (props) => ({
+            color: props.colorMode === 'dark' ? 'darkSubtext' : 'gray.600',
+          }),
+        },
+      },
+      Heading: {
+        baseStyle: (props) => ({
+          color: props.colorMode === 'dark' ? 'darkText' : 'gray.800',
+        }),
+      },
+      Input: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'darkInput' : 'white',
+          borderColor: props.colorMode === 'dark' ? 'darkBorder' : 'gray.200',
+          color: props.colorMode === 'dark' ? 'darkText' : 'gray.800',
+          placeholderTextColor: props.colorMode === 'dark' ? 'darkSubtext' : 'gray.400',
+          _focus: {
+            borderColor: props.colorMode === 'dark' ? 'primary.500' : undefined,
+            bg: props.colorMode === 'dark' ? 'darkInput' : undefined,
+          },
+        }),
+      },
+      Select: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'darkInput' : 'white',
+          borderColor: props.colorMode === 'dark' ? 'darkBorder' : 'gray.200',
+          color: props.colorMode === 'dark' ? 'darkText' : 'gray.800',
+          placeholderTextColor: props.colorMode === 'dark' ? 'darkSubtext' : 'gray.400',
+          _actionSheetContent: {
+            bg: props.colorMode === 'dark' ? 'darkCard' : undefined,
+          },
+        }),
+      },
+      Pressable: {
+        baseStyle: (props) => ({
+          _pressed: {
+            bg: props.colorMode === 'dark' ? 'darkCardAlt' : 'gray.200',
+          },
+        }),
+      },
+      Divider: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'darkDivider' : 'gray.200',
+        }),
+      },
+      Spinner: {
+        baseStyle: (props) => ({
+          color: props.colorMode === 'dark' ? 'primary.400' : 'primary.500',
+        }),
+      },
+      Badge: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'darkCardAlt' : undefined,
+          _text: {
+            color: props.colorMode === 'dark' ? 'darkText' : undefined,
+          },
+        }),
+      },
+      Chip: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'darkCardAlt' : undefined,
+          _text: {
+            color: props.colorMode === 'dark' ? 'darkText' : undefined,
+          },
+        }),
+      },
+      FormControl: {
+        baseStyle: (props) => ({
+          _text: {
+            color: props.colorMode === 'dark' ? 'darkText' : undefined,
+          },
+          _errorText: {
+            color: props.colorMode === 'dark' ? 'darkError' : undefined,
+          },
+        }),
+      },
+      Icon: {
+        baseStyle: (props) => ({
+          color: props.colorMode === 'dark' ? 'darkIcon' : undefined,
+        }),
+      },
+      ScrollView: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'darkBg' : undefined,
+        }),
+      },
+      VStack: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'transparent' : undefined,
+        }),
+      },
+      HStack: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'transparent' : undefined,
+        }),
+      },
+      Center: {
+        baseStyle: (props) => ({
+          bg: props.colorMode === 'dark' ? 'transparent' : undefined,
+        }),
+      },
+      Slider: {
+        baseStyle: (props) => ({
+          _filledTrack: {
+            bg: props.colorMode === 'dark' ? 'primary.500' : undefined,
+          },
+        }),
       },
     },
   });
@@ -90,7 +275,7 @@ export default function App() {
   return (
     <Provider store={store}>
       <NativeBaseProvider theme={theme}>
-        <StatusBar style="auto" />
+        <StatusBar style="light" />
         <AppNavigator />
       </NativeBaseProvider>
     </Provider>
@@ -101,7 +286,7 @@ const styles = StyleSheet.create({
   // Loading Screen
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#121212', // Darker background for loading screen
     alignItems: 'center',
     justifyContent: 'center',
   },

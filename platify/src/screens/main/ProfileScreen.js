@@ -8,7 +8,6 @@ import {
   VStack, 
   HStack, 
   Center, 
-  NativeBaseProvider,
   Icon,
   Pressable,
   Avatar,
@@ -53,10 +52,9 @@ const ProfileScreen = () => {
   };
 
   return (
-    <NativeBaseProvider>
-      <Box flex={1} bg="gray.100" safeArea>
-        <VStack space={4} p={4}>
-          <Heading size="lg" color="coolGray.800">
+    <Box flex={1} bg="darkBg" _light={{ bg: "white" }} safeArea>
+      <VStack space={4} p={4}>
+          <Heading size="lg" color="darkText" _light={{ color: "coolGray.800" }}>
             Profile
           </Heading>
           
@@ -68,34 +66,34 @@ const ProfileScreen = () => {
             >
               {getInitials()}
             </Avatar>
-            <Text fontSize="xl" fontWeight="bold" mt={4}>
+            <Text fontSize="xl" fontWeight="bold" mt={4} color="darkText" _light={{ color: "coolGray.800" }}>
               {user?.displayName}
             </Text>
-            <Text color="coolGray.600">
+            <Text color="darkSubtext" _light={{ color: "coolGray.600" }}>
               {user?.email}
             </Text>
           </Center>
           
-          <Divider />
+          <Divider bg="darkBorder" _light={{ bg: "gray.200" }} />
           
-          <Box bg="white" rounded="lg" shadow={2} p={4}>
-            <Heading size="sm" mb={4}>
+          <Box bg="darkCard" _light={{ bg: "white" }} rounded="lg" shadow={2} p={4}>
+            <Heading size="sm" mb={4} color="darkText" _light={{ color: "coolGray.800" }}>
               My Stats
             </Heading>
             
             <HStack justifyContent="space-between" mb={2}>
-              <Text color="coolGray.600">Time Saved</Text>
-              <Text fontWeight="bold">{metrics.timeSaved || 0} minutes</Text>
+              <Text color="darkSubtext" _light={{ color: "coolGray.600" }}>Time Saved</Text>
+              <Text fontWeight="bold" color="darkText" _light={{ color: "coolGray.800" }}>{metrics.timeSaved || 0} minutes</Text>
             </HStack>
             
             <HStack justifyContent="space-between">
-              <Text color="coolGray.600">Food Waste Avoided</Text>
-              <Text fontWeight="bold">{metrics.foodWasteAvoided || 0} grams</Text>
+              <Text color="darkSubtext" _light={{ color: "coolGray.600" }}>Food Waste Avoided</Text>
+              <Text fontWeight="bold" color="darkText" _light={{ color: "coolGray.800" }}>{metrics.foodWasteAvoided || 0} grams</Text>
             </HStack>
           </Box>
           
-          <Box bg="white" rounded="lg" shadow={2} p={4}>
-            <Heading size="sm" mb={4}>
+          <Box bg="darkCard" _light={{ bg: "white" }} rounded="lg" shadow={2} p={4}>
+            <Heading size="sm" mb={4} color="darkText" _light={{ color: "coolGray.800" }}>
               Settings
             </Heading>
             
@@ -105,9 +103,9 @@ const ProfileScreen = () => {
               alignItems="center"
               _pressed={{ opacity: 0.5 }}
             >
-              <Icon as={Ionicons} name="notifications-outline" size="sm" color="coolGray.600" />
-              <Text ml={2}>Notifications</Text>
-              <Icon as={Ionicons} name="chevron-forward" size="sm" color="coolGray.400" ml="auto" />
+              <Icon as={Ionicons} name="notifications-outline" size="sm" color="darkSubtext" _light={{ color: "coolGray.600" }} />
+              <Text ml={2} color="darkText" _light={{ color: "coolGray.800" }}>Notifications</Text>
+              <Icon as={Ionicons} name="chevron-forward" size="sm" color="darkBorder" _light={{ color: "coolGray.400" }} ml="auto" />
             </Pressable>
             
             <Pressable 
@@ -116,9 +114,9 @@ const ProfileScreen = () => {
               alignItems="center"
               _pressed={{ opacity: 0.5 }}
             >
-              <Icon as={Ionicons} name="lock-closed-outline" size="sm" color="coolGray.600" />
-              <Text ml={2}>Privacy</Text>
-              <Icon as={Ionicons} name="chevron-forward" size="sm" color="coolGray.400" ml="auto" />
+              <Icon as={Ionicons} name="lock-closed-outline" size="sm" color="darkSubtext" _light={{ color: "coolGray.600" }} />
+              <Text ml={2} color="darkText" _light={{ color: "coolGray.800" }}>Privacy</Text>
+              <Icon as={Ionicons} name="chevron-forward" size="sm" color="darkBorder" _light={{ color: "coolGray.400" }} ml="auto" />
             </Pressable>
             
             <Pressable 
@@ -127,9 +125,9 @@ const ProfileScreen = () => {
               alignItems="center"
               _pressed={{ opacity: 0.5 }}
             >
-              <Icon as={Ionicons} name="help-circle-outline" size="sm" color="coolGray.600" />
-              <Text ml={2}>Help & Support</Text>
-              <Icon as={Ionicons} name="chevron-forward" size="sm" color="coolGray.400" ml="auto" />
+              <Icon as={Ionicons} name="help-circle-outline" size="sm" color="darkSubtext" _light={{ color: "coolGray.600" }} />
+              <Text ml={2} color="darkText" _light={{ color: "coolGray.800" }}>Help & Support</Text>
+              <Icon as={Ionicons} name="chevron-forward" size="sm" color="darkBorder" _light={{ color: "coolGray.400" }} ml="auto" />
             </Pressable>
           </Box>
           
@@ -139,12 +137,17 @@ const ProfileScreen = () => {
             leftIcon={<Icon as={Ionicons} name="log-out-outline" size="sm" />}
             onPress={handleLogout}
             mt={4}
+            borderColor="red.500"
+            _text={{ color: "red.500" }}
+            _dark={{ 
+              borderColor: "red.400", 
+              _text: { color: "red.400" }
+            }}
           >
             Log Out
           </Button>
-        </VStack>
-      </Box>
-    </NativeBaseProvider>
+      </VStack>
+    </Box>
   );
 };
 

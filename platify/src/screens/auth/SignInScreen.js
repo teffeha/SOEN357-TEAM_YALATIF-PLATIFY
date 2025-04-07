@@ -68,25 +68,27 @@ const SignInScreen = ({ navigation }) => {
   }, [dispatch]);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Center w="100%">
-          <Box safeArea p="2" py="8" w="90%" maxW="290">
+    <Box flex={1} bg="darkBg" _light={{ bg: "white" }} safeArea>
+      <Center flex={1} px={4}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+          w="100%"
+        >
+          <ScrollView contentContainerStyle={styles.container}>
+            <Box w="100%" maxW="350" alignItems="center">
               <Heading
                 size="xl"
                 fontWeight="600"
-                color="coolGray.800"
-                _dark={{ color: "warmGray.50" }}
+                color="darkText"
+                _light={{ color: "coolGray.800" }}
               >
                 Welcome to Platify
               </Heading>
               <Heading
                 mt="1"
-                _dark={{ color: "warmGray.200" }}
-                color="coolGray.600"
+                color="darkSubtext"
+                _light={{ color: "coolGray.600" }}
                 fontWeight="medium"
                 size="xs"
               >
@@ -95,12 +97,24 @@ const SignInScreen = ({ navigation }) => {
 
               <VStack space={3} mt="5">
                 <FormControl isInvalid={!!formErrors.email}>
-                  <FormControl.Label>Email</FormControl.Label>
+                  <FormControl.Label _text={{ color: "darkText", _light: { color: "coolGray.800" } }}>Email</FormControl.Label>
                   <Input
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
                     keyboardType="email-address"
+                    bg="darkInput"
+                    color="darkText"
+                    borderColor="darkBorder"
+                    size="lg"
+                    height="12"
+                    width="250"
+                    fontSize="md"
+                    _light={{ 
+                      bg: "white",
+                      color: "coolGray.800",
+                      borderColor: "coolGray.300" 
+                    }}
                   />
                   <FormControl.ErrorMessage>
                     {formErrors.email}
@@ -108,12 +122,24 @@ const SignInScreen = ({ navigation }) => {
                 </FormControl>
                 
                 <FormControl isInvalid={!!formErrors.password}>
-                  <FormControl.Label>Password</FormControl.Label>
+                  <FormControl.Label _text={{ color: "darkText", _light: { color: "coolGray.800" } }}>Password</FormControl.Label>
                   <Input
                     type="password"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
+                    bg="darkInput"
+                    color="darkText"
+                    borderColor="darkBorder"
+                    size="lg"
+                    height="12"
+                    width="250"
+                    fontSize="md"
+                    _light={{ 
+                      bg: "white",
+                      color: "coolGray.800",
+                      borderColor: "coolGray.300" 
+                    }}
                   />
                   <FormControl.ErrorMessage>
                     {formErrors.password}
@@ -127,17 +153,21 @@ const SignInScreen = ({ navigation }) => {
                 )}
                 
                 <Button
-                  mt="2"
+                  mt="4"
                   colorScheme="green"
                   onPress={handleSignIn}
                   isLoading={isLoading}
                   isLoadingText="Signing in"
+                  _text={{ color: "white", fontSize: "md", outlineColor: 'none', outlineWidth: 0, outlineStyle: 'none' }}
+                  height="12"
+                  width="250"
+                  borderRadius="md"
                 >
                   Sign in
                 </Button>
                 
                 <HStack mt="6" justifyContent="center">
-                  <Text fontSize="sm" color="coolGray.600">
+                  <Text fontSize="sm" color="darkSubtext" _light={{ color: "coolGray.600" }}>
                     I'm a new user.{" "}
                   </Text>
                   <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
@@ -148,17 +178,23 @@ const SignInScreen = ({ navigation }) => {
                 </HStack>
               </VStack>
             </Box>
-          </Center>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Center>
+    </Box>
   );
 };
 
 const styles = StyleSheet.create({
+  keyboardView: {
+    width: '100%',
+    flex: 1
+  },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
-    backgroundColor: '#fff'
+    alignItems: 'center',
+    minHeight: '100%'
   }
 });
 

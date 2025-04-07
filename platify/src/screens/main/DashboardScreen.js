@@ -21,7 +21,8 @@ import { fetchFavoriteRecipes } from '../../store/slices/recipeSlice';
 const MetricCard = ({ title, value, icon, color }) => {
   return (
     <Box 
-      bg="white" 
+      bg="darkCard" 
+      _light={{ bg: "white" }}
       rounded="lg" 
       shadow={2} 
       p={4} 
@@ -30,7 +31,7 @@ const MetricCard = ({ title, value, icon, color }) => {
     >
       <HStack space={2} alignItems="center">
         <Icon as={Ionicons} name={icon} size="md" color={color} />
-        <Text fontSize="md" fontWeight="medium" color="gray.600">
+        <Text fontSize="md" fontWeight="medium" color="darkSubtext" _light={{ color: "gray.600" }}>
           {title}
         </Text>
       </HStack>
@@ -55,7 +56,8 @@ const RecipeCard = ({ recipe, onPress }) => {
   return (
     <Pressable onPress={onPress}>
       <Box 
-        bg="white" 
+        bg="darkCard" 
+        _light={{ bg: "white" }}
         rounded="lg" 
         shadow={2} 
         p={4} 
@@ -65,12 +67,12 @@ const RecipeCard = ({ recipe, onPress }) => {
       >
         <HStack justifyContent="space-between" alignItems="center">
           <VStack space={1} flex={1}>
-            <Text fontSize="md" fontWeight="bold" numberOfLines={1}>
+            <Text fontSize="md" fontWeight="bold" numberOfLines={1} color="darkText" _light={{ color: "gray.800" }}>
               {recipe.name}
             </Text>
             <HStack space={2} alignItems="center">
-              <Icon as={Ionicons} name="time-outline" size="xs" color="gray.500" />
-              <Text fontSize="xs" color="gray.500">
+              <Icon as={Ionicons} name="time-outline" size="xs" color="darkSubtext" _light={{ color: "gray.500" }} />
+              <Text fontSize="xs" color="darkSubtext" _light={{ color: "gray.500" }}>
                 {recipe.time_estimate}
               </Text>
             </HStack>
@@ -108,13 +110,13 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   return (
-      <Box flex={1} bg="gray.100" safeArea>
+      <Box flex={1} bg="darkBg" _light={{ bg: "gray.100" }} safeArea>
         <VStack space={4} flex={1} p={4}>
-          <Heading size="lg" color="coolGray.800">
+          <Heading size="lg" color="darkText" _light={{ color: "coolGray.800" }}>
             Dashboard
           </Heading>
           
-          <Heading size="sm" color="coolGray.600">
+          <Heading size="sm" color="darkSubtext" _light={{ color: "coolGray.600" }}>
             Weekly Metrics
           </Heading>
           
@@ -136,7 +138,7 @@ const DashboardScreen = ({ navigation }) => {
           <Divider my={2} />
           
           <HStack justifyContent="space-between" alignItems="center">
-            <Heading size="sm" color="coolGray.600">
+            <Heading size="sm" color="darkSubtext" _light={{ color: "coolGray.600" }}>
               Favorite Recipes
             </Heading>
             <Pressable onPress={() => navigation.navigate('Favorites')}>

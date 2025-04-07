@@ -1,5 +1,6 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { useColorMode } from 'native-base';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
@@ -41,11 +42,13 @@ const BottomTabs = () => {
         tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
-        tabBarStyle: {
+        tabBarStyle: ({ colors }) => ({
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
-        },
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+        }),
         tabBarLabelStyle: {
           fontSize: 12,
         },
@@ -81,24 +84,52 @@ const MainNavigator = () => {
       <Stack.Screen 
         name="RecipeDetail" 
         component={RecipeDetailScreen} 
-        options={{
+        options={({ route, navigation }) => ({
           title: 'Recipe Details',
           headerTintColor: '#4CAF50',
           headerTitleStyle: {
             fontWeight: 'bold',
           },
-        }}
+          headerStyle: ({ colors }) => ({
+            backgroundColor: colors.card,
+            shadowColor: colors.border,
+            elevation: 0,
+          }),
+        })}
       />
     </Stack.Navigator>
   );
 };
 
+// Custom themes for navigation
+const customDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: '#4CAF50',
+    background: '#121212',
+    card: '#1E1E1E',
+    text: '#E1E1E1',
+    border: '#333333',
+    notification: '#4CAF50',
+  },
+};
+
+const customLightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#4CAF50',
+  },
+};
+
 // Root navigator
 const AppNavigator = () => {
   const { user } = useSelector((state) => state.auth);
+  const { colorMode } = useColorMode();
   
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={colorMode === 'dark' ? customDarkTheme : customLightTheme}>
       {user ? <MainNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );

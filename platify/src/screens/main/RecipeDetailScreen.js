@@ -78,7 +78,7 @@ const RecipeDetailScreen = ({ route, navigation }) => {
 
   return (
     <NativeBaseProvider>
-      <Box flex={1} bg="white" safeArea>
+      <Box flex={1} bg="darkBg" _light={{ bg: "white" }} safeArea>
         <ScrollView showsVerticalScrollIndicator={false}>
           <VStack space={4} p={4}>
             {/* Header with back button and favorite icon */}
@@ -87,34 +87,40 @@ const RecipeDetailScreen = ({ route, navigation }) => {
                 icon={<Icon as={Ionicons} name="arrow-back" />}
                 onPress={() => navigation.goBack()}
                 borderRadius="full"
-                _icon={{ color: "coolGray.700" }}
-                _pressed={{ bg: "coolGray.100" }}
+                _icon={{ color: "darkText" }}
+                _pressed={{ bg: "darkPressed" }}
+                _light={{ 
+                  _icon: { color: "coolGray.700" },
+                  _pressed: { bg: "coolGray.100" }
+                }}
               />
               <IconButton
                 icon={
                   <Icon 
                     as={Ionicons} 
                     name={isFavorite ? "heart" : "heart-outline"} 
-                    color={isFavorite ? "red.500" : "coolGray.400"}
+                    color={isFavorite ? "red.500" : "darkSubtext"}
+                    _light={{ color: isFavorite ? "red.500" : "coolGray.400" }}
                   />
                 }
                 onPress={handleFavoriteToggle}
                 isLoading={isLoading}
                 borderRadius="full"
-                _pressed={{ bg: "coolGray.100" }}
+                _pressed={{ bg: "darkPressed" }}
+                _light={{ _pressed: { bg: "coolGray.100" } }}
               />
             </HStack>
             
             {/* Recipe title and info */}
             <VStack space={2}>
-              <Heading size="xl" color="coolGray.800">
+              <Heading size="xl" color="darkText" _light={{ color: "coolGray.800" }}>
                 {recipe.name}
               </Heading>
               
               <HStack space={4} alignItems="center">
                 <HStack space={1} alignItems="center">
-                  <Icon as={Ionicons} name="time-outline" size="sm" color="coolGray.500" />
-                  <Text color="coolGray.500">{recipe.time_estimate}</Text>
+                  <Icon as={Ionicons} name="time-outline" size="sm" color="darkSubtext" _light={{ color: "coolGray.500" }} />
+                  <Text color="darkSubtext" _light={{ color: "coolGray.500" }}>{recipe.time_estimate}</Text>
                 </HStack>
                 
                 <Badge 
@@ -134,7 +140,7 @@ const RecipeDetailScreen = ({ route, navigation }) => {
             
             {/* Recipe steps */}
             <VStack space={2}>
-              <Heading size="md" color="coolGray.700">
+              <Heading size="md" color="darkText" _light={{ color: "coolGray.700" }}>
                 Instructions
               </Heading>
               
@@ -155,14 +161,14 @@ const RecipeDetailScreen = ({ route, navigation }) => {
                             {index + 1}
                           </Text>
                         </Box>
-                        <Text fontWeight="medium" flex={1}>
+                        <Text fontWeight="medium" flex={1} color="darkText" _light={{ color: "gray.800" }}>
                           Step {index + 1}
                         </Text>
                       </HStack>
                       <Accordion.Icon />
                     </Accordion.Summary>
                     <Accordion.Details>
-                      <Text ml={8} color="coolGray.600">
+                      <Text ml={8} color="darkSubtext" _light={{ color: "coolGray.600" }}>
                         {step}
                       </Text>
                     </Accordion.Details>
@@ -172,14 +178,14 @@ const RecipeDetailScreen = ({ route, navigation }) => {
             </VStack>
             
             {/* Tips section */}
-            <VStack space={2} bg="coolGray.50" p={4} rounded="md">
+            <VStack space={2} bg="darkCard" _light={{ bg: "coolGray.50" }} p={4} rounded="md">
               <HStack space={2} alignItems="center">
-                <Icon as={Ionicons} name="bulb-outline" color="amber.500" />
-                <Text fontWeight="bold" color="coolGray.700">
+                <Icon as={Ionicons} name="bulb-outline" color="amber.400" _light={{ color: "amber.500" }} />
+                <Text fontWeight="bold" color="darkText" _light={{ color: "coolGray.700" }}>
                   Tips
                 </Text>
               </HStack>
-              <Text color="coolGray.600">
+              <Text color="darkSubtext" _light={{ color: "coolGray.600" }}>
                 • Prep all ingredients before starting to cook for a smoother experience.
                 {'\n'}• Adjust seasoning to taste as you go.
                 {'\n'}• Let the dish rest for a few minutes before serving for better flavor.
