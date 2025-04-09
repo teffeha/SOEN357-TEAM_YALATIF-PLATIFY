@@ -46,6 +46,8 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+
+  
   // Loading screen with animation
   if (isLoading) {
     return (
@@ -60,7 +62,7 @@ export default function App() {
       </SafeAreaView>
     );
   }
-
+  
   // Define theme for NativeBase
   const theme = extendTheme({
     colors: {
@@ -86,11 +88,13 @@ export default function App() {
     },
   });
 
+
+  
   // Main app with navigation
   return (
     <Provider store={store}>
       <NativeBaseProvider theme={theme}>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <AppNavigator />
       </NativeBaseProvider>
     </Provider>

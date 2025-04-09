@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@react-navigation/native';
 
 // Import main screens
 import DashboardScreen from '../screens/main/DashboardScreen';
@@ -12,6 +13,8 @@ import ProfileScreen from '../screens/main/ProfileScreen';
 const Tab = createBottomTabNavigator();
 
 const MainNavigator = () => {
+  const { colors } = useTheme();
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -31,12 +34,14 @@ const MainNavigator = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#4CAF50',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.text,
         tabBarStyle: {
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
         },
         tabBarLabelStyle: {
           fontSize: 12,

@@ -54,7 +54,7 @@ const SignUpScreen = ({ navigation }) => {
       errors.password = 'Password is required';
     } else if (password.length < 8) {
       errors.password = 'Password must be at least 8 characters';
-    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    } else if (!/[!@#$%^&*(),.?":{}|<>_-]/.test(password)) {
       errors.password = 'Password must contain at least 1 special character';
     }
     

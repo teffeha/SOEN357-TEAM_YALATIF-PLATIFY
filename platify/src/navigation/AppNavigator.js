@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
@@ -93,12 +93,26 @@ const MainNavigator = () => {
   );
 };
 
+// Custom theme
+const CustomTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#4CAF50',
+    background: '#F5F5F5',
+    card: '#FFFFFF',
+    text: '#333333',
+    border: '#E0E0E0',
+    notification: '#FF4081',
+  },
+};
+
 // Root navigator
 const AppNavigator = () => {
   const { user } = useSelector((state) => state.auth);
   
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={CustomTheme}>
       {user ? <MainNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );

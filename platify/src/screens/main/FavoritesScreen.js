@@ -72,8 +72,8 @@ const FavoritesScreen = ({ navigation }) => {
               {item.name}
             </Text>
             <HStack space={2} alignItems="center">
-              <Icon as={Ionicons} name="time-outline" size="xs" color="gray.500" />
-              <Text fontSize="xs" color="gray.500">
+              <Icon as={Ionicons} name="time-outline" size="xs" color="gray.600" />
+              <Text fontSize="xs" color="gray.600">
                 {item.time_estimate}
               </Text>
             </HStack>
@@ -112,12 +112,11 @@ const FavoritesScreen = ({ navigation }) => {
   );
 
   return (
-    <NativeBaseProvider>
-      <Box flex={1} bg="gray.100" safeArea>
-        <VStack space={4} flex={1} p={4}>
-          <Heading size="lg" color="coolGray.800">
-            Favorite Recipes
-          </Heading>
+    <Box flex={1} bg="#F5F5F5" safeArea>
+      <VStack space={4} flex={1} p={4}>
+        <Heading size="lg">
+          Favorite Recipes
+        </Heading>
           
           <Divider />
           
@@ -145,7 +144,7 @@ const FavoritesScreen = ({ navigation }) => {
                 size="4xl" 
                 color="gray.300" 
               />
-              <Text color="gray.500" mt={2}>
+              <Text color="gray.600" mt={2}>
                 No favorite recipes yet
               </Text>
               <Pressable 
@@ -164,7 +163,7 @@ const FavoritesScreen = ({ navigation }) => {
           )}
         </VStack>
       </Box>
-    </NativeBaseProvider>
+
   );
 };
 

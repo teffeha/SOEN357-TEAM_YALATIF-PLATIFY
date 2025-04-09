@@ -13,7 +13,7 @@ import {
   addIngredient, removeIngredient, clearSelectedIngredients,
   setSelectedCategory, clearSelectedCategory
 } from '../../store/slices/ingredientSlice';
-import { initializeIngredientData } from '../../services/ingredientStorage';
+import { initializeIngredientData, refreshIngredients } from '../../services/ingredientStorage';
 
 // Recipe Card Component
 const RecipeCard = ({ recipe, onPress }) => {
@@ -39,11 +39,11 @@ const RecipeCard = ({ recipe, onPress }) => {
         borderLeftColor={getSkillColor(recipe.skill_level)}
       >
         <VStack space={2}>
-          <Heading size="md" color="coolGray.800">
+          <Heading size="md">
             {recipe.title}
           </Heading>
           
-          <Text color="coolGray.600" numberOfLines={2}>
+          <Text color="gray.600" numberOfLines={2}>
             {recipe.description}
           </Text>
           
@@ -78,7 +78,7 @@ const RecipeSearchScreen = ({ navigation }) => {
   const { recipes, isLoading } = useSelector((state) => state.recipes);
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [portions, setPortions] = useState(4);
+  const [portions, setPortions] = useState(1);
   const [days, setDays] = useState(1);
   const [diet, setDiet] = useState('');
   const [skill, setSkill] = useState('beginner');
@@ -89,49 +89,66 @@ const RecipeSearchScreen = ({ navigation }) => {
   
   // Initialize and fetch ingredients and categories
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
       try {
         // Initialize ingredient data in AsyncStorage
         await initializeIngredientData();
         
-        // Fetch categories and ingredients from AsyncStorage
-        await dispatch(fetchIngredientCategories()).unwrap();
-        await dispatch(fetchIngredients()).unwrap();
+        // Fetch categories and ingredients from AsyncStorage only if component is still mounted
+        if (isMounted) {
+          await dispatch(fetchIngredientCategories()).unwrap();
+          await dispatch(fetchIngredients()).unwrap();
+        }
       } catch (error) {
         console.error('Error initializing ingredient data:', error);
-        toast.show({
-          description: "Error loading ingredients",
-          status: "error",
-          duration: 3000
-        });
+        if (isMounted) {
+          toast.show({
+            description: "Error loading ingredients",
+            status: "error",
+            duration: 3000
+          });
+        }
       }
     };
     
     fetchData();
     
     return () => {
+      isMounted = false;
       dispatch(clearRecipes());
     };
   }, [dispatch, toast]);
   
   // Filter ingredients based on search or category
   useEffect(() => {
+    let isMounted = true;
+    
     if (searchQuery.trim() !== '') {
       const filtered = uniqueIngredients.filter(
         ing => ing.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredIngredients(filtered);
-      setShowCategoryView(false);
+      if (isMounted) {
+        setFilteredIngredients(filtered);
+        setShowCategoryView(false);
+      }
     } else if (selectedCategory) {
       const filtered = uniqueIngredients.filter(
         ing => ing.category === selectedCategory.id
       );
-      setFilteredIngredients(filtered);
-      setShowCategoryView(false);
-    } else {
+      if (isMounted) {
+        setFilteredIngredients(filtered);
+        setShowCategoryView(false);
+      }
+    } else if (isMounted) {
       setFilteredIngredients([]);
       setShowCategoryView(true);
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [searchQuery, uniqueIngredients, selectedCategory]);
   
   // Ensure categories have unique IDs
@@ -226,13 +243,47 @@ const RecipeSearchScreen = ({ navigation }) => {
   };
 
   return (
-    <Box flex={1} bg="gray.50" safeArea>
+    <Box flex={1} bg="#F5F5F5" safeArea>
       <FlatList
         data={[{ key: 'content' }]}
         renderItem={() => (
           <VStack space={4} p={4}>
           {/* Header */}
-          <Heading size="lg" color="coolGray.800">Find Recipes</Heading>
+          <HStack justifyContent="space-between" alignItems="center" mb={2}>
+            <Heading size="lg">Find Recipes</Heading>
+            <Button
+              size="sm"
+              variant="ghost"
+              colorScheme="green"
+              leftIcon={<Icon as={Ionicons} name="refresh-outline" size="sm" />}
+              onPress={async () => {
+                try {
+                  toast.show({
+                    description: "Refreshing ingredients...",
+                    status: "info",
+                    duration: 2000
+                  });
+                  await refreshIngredients();
+                  await dispatch(fetchIngredientCategories()).unwrap();
+                  await dispatch(fetchIngredients()).unwrap();
+                  toast.show({
+                    description: "Ingredients refreshed",
+                    status: "success",
+                    duration: 2000
+                  });
+                } catch (error) {
+                  console.error('Error refreshing ingredients:', error);
+                  toast.show({
+                    description: "Failed to refresh ingredients",
+                    status: "error",
+                    duration: 3000
+                  });
+                }
+              }}
+            >
+              Refresh
+            </Button>
+          </HStack>
           
           {/* Ingredient Selection */}
           <Box bg="white" p={4} rounded="xl" shadow={1}>
@@ -244,13 +295,16 @@ const RecipeSearchScreen = ({ navigation }) => {
               mb={4}
               size="lg"
               borderRadius="full"
+              color="gray.800"
+              borderColor="gray.300"
+              placeholderTextColor="gray.500"
               InputLeftElement={
-                <Icon as={Ionicons} name="search" size="sm" color="gray.400" ml={3} />
+                <Icon as={Ionicons} name="search" size="sm" color="gray.500" ml={3} />
               }
               InputRightElement={
                 (searchQuery || selectedCategory) ? (
                   <Pressable onPress={handleBackToCategories} mr={3}>
-                    <Icon as={Ionicons} name="close-circle" size="sm" color="gray.400" />
+                    <Icon as={Ionicons} name="close-circle" size="sm" color="gray.500" />
                   </Pressable>
                 ) : null
               }
@@ -265,7 +319,7 @@ const RecipeSearchScreen = ({ navigation }) => {
                     <Box key={item.id} width="50%" p={1}>
                     <Pressable 
                       onPress={() => handleCategorySelect(item)}
-                      bg="coolGray.50"
+                      bg="white"
                       p={3}
                       m={1}
                       flex={1}
@@ -312,7 +366,7 @@ const RecipeSearchScreen = ({ navigation }) => {
                       <Box key={item.id} width="50%" p={1}>
                       <Pressable 
                         onPress={() => handleAddIngredient(item)}
-                        bg="coolGray.50"
+                        bg="white"
                         p={3}
                         m={1}
                         flex={1}
@@ -335,7 +389,7 @@ const RecipeSearchScreen = ({ navigation }) => {
                     ))}
                   </Box>
                 ) : (
-                  <Text color="muted.500" textAlign="center" py={4}>No ingredients found</Text>
+                  <Text color="gray.500" textAlign="center" py={4}>No ingredients found</Text>
                 )}
               </Box>
             )}
@@ -383,7 +437,7 @@ const RecipeSearchScreen = ({ navigation }) => {
                     </Badge>
                   ))
                 ) : (
-                  <Text color="muted.500" py={2}>No ingredients selected</Text>
+                  <Text color="gray.500" py={2}>No ingredients selected</Text>
                 )}
               </HStack>
             </Box>
@@ -397,7 +451,7 @@ const RecipeSearchScreen = ({ navigation }) => {
             </HStack>
             
             {/* Portions and Days */}
-            <Box bg="coolGray.50" p={4} rounded="lg" mb={4}>
+            <Box bg="#F5F5F5" p={4} rounded="lg" mb={4}>
               <FormControl mb={5}>
                 <HStack justifyContent="space-between" alignItems="center" mb={1}>
                   <FormControl.Label _text={{ fontWeight: "medium" }}>Portions</FormControl.Label>
@@ -406,7 +460,7 @@ const RecipeSearchScreen = ({ navigation }) => {
                   </Badge>
                 </HStack>
                 <Slider
-                  defaultValue={4}
+                  defaultValue={1}
                   minValue={1}
                   maxValue={10}
                   step={1}
@@ -444,7 +498,7 @@ const RecipeSearchScreen = ({ navigation }) => {
             </Box>
             
             {/* Max Cooking Time */}
-            <Box bg="coolGray.50" p={4} rounded="lg" mb={4}>
+            <Box bg="#F5F5F5" p={4} rounded="lg" mb={4}>
               <FormControl>
                 <HStack justifyContent="space-between" alignItems="center" mb={1}>
                   <FormControl.Label _text={{ fontWeight: "medium" }}>Max Cooking Time</FormControl.Label>
@@ -469,7 +523,7 @@ const RecipeSearchScreen = ({ navigation }) => {
             </Box>
             
             {/* Diet and Skill Level */}
-            <Box bg="coolGray.50" p={4} rounded="lg" mb={4}>
+            <Box bg="#F5F5F5" p={4} rounded="lg" mb={4}>
               <HStack space={4}>
                 <FormControl flex={1}>
                   <FormControl.Label _text={{ fontWeight: "medium" }}>Diet</FormControl.Label>
@@ -478,12 +532,16 @@ const RecipeSearchScreen = ({ navigation }) => {
                     accessibilityLabel="Diet"
                     placeholder="Select diet"
                     rounded="lg"
+                    color="gray.800"
+                    bg="white"
+                    borderColor="gray.300"
+                    placeholderTextColor="gray.500"
                     _selectedItem={{
                       bg: "green.100",
                       endIcon: <CheckIcon size="5" />
                     }}
                     onValueChange={itemValue => setDiet(itemValue)}
-                    dropdownIcon={<Icon as={Ionicons} name="chevron-down" size="sm" mr={2} />}
+                    dropdownIcon={<Icon as={Ionicons} name="chevron-down" size="sm" mr={2} color="gray.800" />}
                   >
                     <Select.Item label="None" value="" />
                     <Select.Item label="Vegan" value="vegan" />
@@ -506,12 +564,16 @@ const RecipeSearchScreen = ({ navigation }) => {
                     accessibilityLabel="Skill"
                     placeholder="Select skill"
                     rounded="lg"
+                    color="gray.800"
+                    bg="white"
+                    borderColor="gray.300"
+                    placeholderTextColor="gray.500"
                     _selectedItem={{
                       bg: "green.100",
                       endIcon: <CheckIcon size="5" />
                     }}
                     onValueChange={itemValue => setSkill(itemValue)}
-                    dropdownIcon={<Icon as={Ionicons} name="chevron-down" size="sm" mr={2} />}
+                    dropdownIcon={<Icon as={Ionicons} name="chevron-down" size="sm" mr={2} color="gray.800" />}
                   >
                     <Select.Item label="Beginner" value="beginner" />
                     <Select.Item label="Intermediate" value="intermediate" />
@@ -522,7 +584,7 @@ const RecipeSearchScreen = ({ navigation }) => {
             </Box>
             
             {/* Allergies and Restrictions */}
-            <Box bg="coolGray.50" p={4} rounded="lg">
+            <Box bg="#F5F5F5" p={4} rounded="lg">
               <FormControl>
                 <FormControl.Label _text={{ fontWeight: "medium" }}>Allergies & Restrictions</FormControl.Label>
                 <Box flexDirection="row" flexWrap="wrap" mt={2}>

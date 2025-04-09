@@ -25,6 +25,7 @@ const ProfileScreen = () => {
   const { user } = useSelector((state) => state.auth);
   const { metrics } = useSelector((state) => state.recipes);
 
+
   const handleLogout = async () => {
     try {
       await dispatch(logoutUser()).unwrap();
@@ -53,10 +54,9 @@ const ProfileScreen = () => {
   };
 
   return (
-    <NativeBaseProvider>
-      <Box flex={1} bg="gray.100" safeArea>
+    <Box flex={1} bg="#F5F5F5" safeArea>
         <VStack space={4} p={4}>
-          <Heading size="lg" color="coolGray.800">
+          <Heading size="lg">
             Profile
           </Heading>
           
@@ -105,9 +105,9 @@ const ProfileScreen = () => {
               alignItems="center"
               _pressed={{ opacity: 0.5 }}
             >
-              <Icon as={Ionicons} name="notifications-outline" size="sm" color="coolGray.600" />
+              <Icon as={Ionicons} name="notifications-outline" size="sm" color="gray.600" />
               <Text ml={2}>Notifications</Text>
-              <Icon as={Ionicons} name="chevron-forward" size="sm" color="coolGray.400" ml="auto" />
+              <Icon as={Ionicons} name="chevron-forward" size="sm" color="gray.400" ml="auto" />
             </Pressable>
             
             <Pressable 
@@ -116,9 +116,9 @@ const ProfileScreen = () => {
               alignItems="center"
               _pressed={{ opacity: 0.5 }}
             >
-              <Icon as={Ionicons} name="lock-closed-outline" size="sm" color="coolGray.600" />
+              <Icon as={Ionicons} name="lock-closed-outline" size="sm" color="gray.600" />
               <Text ml={2}>Privacy</Text>
-              <Icon as={Ionicons} name="chevron-forward" size="sm" color="coolGray.400" ml="auto" />
+              <Icon as={Ionicons} name="chevron-forward" size="sm" color="gray.400" ml="auto" />
             </Pressable>
             
             <Pressable 
@@ -127,9 +127,9 @@ const ProfileScreen = () => {
               alignItems="center"
               _pressed={{ opacity: 0.5 }}
             >
-              <Icon as={Ionicons} name="help-circle-outline" size="sm" color="coolGray.600" />
+              <Icon as={Ionicons} name="help-circle-outline" size="sm" color="gray.600" />
               <Text ml={2}>Help & Support</Text>
-              <Icon as={Ionicons} name="chevron-forward" size="sm" color="coolGray.400" ml="auto" />
+              <Icon as={Ionicons} name="chevron-forward" size="sm" color="gray.400" ml="auto" />
             </Pressable>
           </Box>
           
@@ -144,7 +144,7 @@ const ProfileScreen = () => {
           </Button>
         </VStack>
       </Box>
-    </NativeBaseProvider>
+    
   );
 };
 

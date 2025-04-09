@@ -30,7 +30,7 @@ const MetricCard = ({ title, value, icon, color }) => {
     >
       <HStack space={2} alignItems="center">
         <Icon as={Ionicons} name={icon} size="md" color={color} />
-        <Text fontSize="md" fontWeight="medium" color="gray.600">
+        <Text fontSize="md" fontWeight="medium">
           {title}
         </Text>
       </HStack>
@@ -98,9 +98,16 @@ const DashboardScreen = ({ navigation }) => {
   const { favoriteRecipes, isLoading, metrics } = useSelector((state) => state.recipes);
 
   useEffect(() => {
-    if (user) {
+    let isMounted = true;
+    
+    if (user && isMounted) {
       dispatch(fetchFavoriteRecipes(user.uid));
     }
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMounted = false;
+    };
   }, [dispatch, user]);
 
   const handleRecipePress = (recipe) => {
@@ -108,13 +115,13 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   return (
-      <Box flex={1} bg="gray.100" safeArea>
+      <Box flex={1} bg="#F5F5F5" safeArea>
         <VStack space={4} flex={1} p={4}>
-          <Heading size="lg" color="coolGray.800">
+          <Heading size="lg">
             Dashboard
           </Heading>
           
-          <Heading size="sm" color="coolGray.600">
+          <Heading size="sm">
             Weekly Metrics
           </Heading>
           
@@ -136,7 +143,7 @@ const DashboardScreen = ({ navigation }) => {
           <Divider my={2} />
           
           <HStack justifyContent="space-between" alignItems="center">
-            <Heading size="sm" color="coolGray.600">
+            <Heading size="sm">
               Favorite Recipes
             </Heading>
             <Pressable onPress={() => navigation.navigate('Favorites')}>

@@ -120,3 +120,23 @@ export const searchIngredients = async (query) => {
     return [];
   }
 };
+
+/**
+ * Force refresh ingredients data from source
+ */
+export const refreshIngredients = async () => {
+  try {
+    console.log('Refreshing ingredient data...');
+    
+    // Clear version to force reinitialization
+    await AsyncStorage.removeItem(STORAGE_VERSION_KEY);
+    
+    // Reinitialize data
+    const success = await initializeIngredientData();
+    
+    return success;
+  } catch (error) {
+    console.error('Error refreshing ingredients:', error);
+    return false;
+  }
+};
