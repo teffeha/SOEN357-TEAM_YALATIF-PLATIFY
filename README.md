@@ -43,20 +43,6 @@ Follow these steps to set up the project locally:
    yarn install
    ```
 
-3. **Set up Firebase**
-
-   The app uses Firebase for authentication and data storage. You'll need to create a Firebase project and configure it:
-
-   a. Go to the [Firebase Console](https://console.firebase.google.com/)
-   
-   b. Click "Add project" and follow the steps to create a new project
-   
-   c. In the Firebase console, add a new web app to your project
-   
-   d. Copy the Firebase configuration object
-   
-   e. Create a file named `firebaseConfig.js` in the `/src/config/` directory with the following content:
-
    ```javascript
    // src/config/firebaseConfig.js
    export default {
