@@ -102,39 +102,28 @@ const RecipeHistoryScreen = () => {
                 </Text>
               </VStack>
               
-              <HStack mt={3} space={2} flexWrap="nowrap">
-                <Badge 
-                  colorScheme="green" 
-                  variant="subtle" 
-                  rounded="md" 
-                  px={2} 
-                  minWidth="70px"
-                  maxWidth="85px"
-                  _text={{ noOfLines: 1, fontSize: "xs" }}
-                >
-                  {recipe.cooking_time || recipe.time_estimate || '30'} min
-                </Badge>
+              <HStack mt={3} space={3} flexWrap="wrap" alignItems="center">
+                <HStack space={1} alignItems="center" minWidth="80px">
+                  <Icon as={Ionicons} name="time-outline" size="xs" color="gray.500" />
+                  <Text fontSize="xs" color="gray.500">
+                    {recipe.cooking_time || recipe.time_estimate || '30 min'}
+                  </Text>
+                </HStack>
                 
-                <Badge 
-                  colorScheme="blue" 
-                  variant="subtle" 
-                  rounded="md" 
-                  px={2}
-                  minWidth="80px"
-                  maxWidth="105px"
-                  _text={{ noOfLines: 1, fontSize: "xs" }}
-                >
-                  {recipe.portions || recipe.servings || '2'} servings
-                </Badge>
+                <HStack space={1} alignItems="center" minWidth="80px">
+                  <Icon as={Ionicons} name="people-outline" size="xs" color="gray.500" />
+                  <Text fontSize="xs" color="gray.500">
+                    {recipe.portions || recipe.servings || '2'} {(recipe.portions || recipe.servings || 2) === 1 ? 'portion' : 'portions'}
+                  </Text>
+                </HStack>
                 
                 <Badge 
                   colorScheme={recipe.skill_level === 'beginner' ? 'green' : recipe.skill_level === 'intermediate' ? 'orange' : 'red'} 
-                  variant="subtle" 
-                  rounded="md"
+                  variant="solid" 
+                  rounded="full"
                   px={2}
-                  minWidth="70px"
-                  maxWidth="85px"
-                  _text={{ noOfLines: 1, fontSize: "xs" }}
+                  py={0}
+                  _text={{ fontSize: "2xs", fontWeight: "medium" }}
                 >
                   {recipe.skill_level}
                 </Badge>
@@ -143,14 +132,15 @@ const RecipeHistoryScreen = () => {
                   <Badge 
                     colorScheme="emerald" 
                     variant="solid" 
-                    rounded="md"
+                    rounded="full"
                     px={2}
-                    minWidth="70px"
-                    maxWidth="85px"
-                    _text={{ noOfLines: 1, fontSize: "xs" }}
-                    startIcon={<Icon as={Ionicons} name="checkmark-circle" size="xs" color="white" />}
+                    py={0}
+                    _text={{ fontSize: "2xs", fontWeight: "medium" }}
                   >
-                    Completed
+                    <HStack space={1} alignItems="center">
+                      <Icon as={Ionicons} name="checkmark-circle" size="2xs" color="white" />
+                      <Text fontSize="2xs" color="white" fontWeight="medium">Completed</Text>
+                    </HStack>
                   </Badge>
                 )}
               </HStack>

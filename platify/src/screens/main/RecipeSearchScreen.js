@@ -49,39 +49,28 @@ const RecipeCard = ({ recipe, onPress }) => {
             {recipe.description}
           </Text>
           
-          <HStack space={2} mt={1} flexWrap="nowrap">
-            <Badge 
-              colorScheme="green" 
-              variant="subtle" 
-              rounded="md" 
-              px={2} 
-              minWidth="70px"
-              maxWidth="85px"
-              _text={{ noOfLines: 1, fontSize: "xs" }}
-            >
-              {recipe.cooking_time || recipe.time_estimate || '30'} 
-            </Badge>
+          <HStack space={3} mt={1} justifyContent="flex-start" alignItems="center">
+            <HStack space={1} alignItems="center" minWidth="80px">
+              <Icon as={Ionicons} name="time-outline" size="xs" color="gray.500" />
+              <Text fontSize="xs" color="gray.500">
+                {recipe.cooking_time || recipe.time_estimate || '30 min'}
+              </Text>
+            </HStack>
             
-            <Badge 
-              colorScheme="blue" 
-              variant="subtle" 
-              rounded="md" 
-              px={2}
-              minWidth="80px"
-              maxWidth="105px"
-              _text={{ noOfLines: 1, fontSize: "xs" }}
-            >
-              {recipe.portions || recipe.servings || '2'} servings
-            </Badge>
+            <HStack space={1} alignItems="center" minWidth="80px">
+              <Icon as={Ionicons} name="people-outline" size="xs" color="gray.500" />
+              <Text fontSize="xs" color="gray.500">
+                {recipe.portions || recipe.servings || '2'} {(recipe.portions || recipe.servings || 2) === 1 ? 'portion' : 'portions'}
+              </Text>
+            </HStack>
             
             <Badge 
               colorScheme={recipe.skill_level === 'beginner' ? 'green' : recipe.skill_level === 'intermediate' ? 'orange' : 'red'} 
-              variant="subtle" 
-              rounded="md"
+              variant="solid" 
+              rounded="full"
               px={2}
-              minWidth="70px"
-              maxWidth="85px"
-              _text={{ noOfLines: 1, fontSize: "xs" }}
+              py={0}
+              _text={{ fontSize: "2xs", fontWeight: "medium" }}
             >
               {recipe.skill_level}
             </Badge>
@@ -311,11 +300,16 @@ const RecipeSearchScreen = ({ navigation }) => {
   };
 
   return (
-    <Box flex={1} bg="#F5F5F5" safeArea>
+    <Box 
+      flex={1} 
+      bg="#F5F5F5" 
+      _ios={{ safeAreaTop: true }}
+      _android={{ safeAreaTop: true }}
+    >
       <FlatList
         data={[{ key: 'content' }]}
         renderItem={() => (
-          <VStack space={4} p={4}>
+          <VStack space={4} p={4} pb={0}>
           {/* Header */}
           <HStack justifyContent="space-between" alignItems="center" mb={2}>
             <Heading size="lg">Find Recipes</Heading>
@@ -749,14 +743,12 @@ const RecipeSearchScreen = ({ navigation }) => {
           <Button
             size="lg"
             colorScheme="green"
-            rounded="full"
-            shadow={2}
-            onPress={handleSearch}
-            isDisabled={selectedIngredients.length === 0}
             isLoading={isLoading}
             isLoadingText="Searching"
             leftIcon={<Icon as={Ionicons} name="search" />}
-            mb={4}
+            mb={0}
+            onPress={handleSearch}
+            isDisabled={selectedIngredients.length === 0}
           >
             Find Recipes
           </Button>
@@ -764,16 +756,25 @@ const RecipeSearchScreen = ({ navigation }) => {
           {/* Recipe Results */}
           {recipes.length > 0 && (
             <Box>
-              <Heading size="md" mb={3}>Recipe Results</Heading>
-              <Box>
-                {recipes.map((item, index) => (
-                  <RecipeCard
-                    key={`recipe-${index}-${item.name}`}
-                    recipe={item}
-                    onPress={() => handleRecipePress(item)}
+              <Heading size="md" mb={2}>
+                Generated Recipes
+              </Heading>
+              
+              <FlatList
+                data={recipes}
+                keyExtractor={(item, index) => `recipe-${index}-${item.name || ''}`}
+                renderItem={({ item }) => (
+                  <RecipeCard 
+                    recipe={item} 
+                    onPress={() => handleRecipePress(item)} 
                   />
-                ))}
-              </Box>
+                )}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 0 }}
+                style={{ marginBottom: 0 }}
+                scrollEnabled={false}
+                nestedScrollEnabled={false}
+              />
             </Box>
           )}
         </VStack>

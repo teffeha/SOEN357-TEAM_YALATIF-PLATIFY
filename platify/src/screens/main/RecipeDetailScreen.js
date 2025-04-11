@@ -241,53 +241,107 @@ const RecipeDetailScreen = ({ route, navigation }) => {
       <Box flex={1} bg="white" safeArea>
         <ScrollView showsVerticalScrollIndicator={false}>
           <VStack space={4} p={4}>
-            {/* Header with back button and favorite icon */}
-            <HStack justifyContent="space-between" alignItems="center">
-              <IconButton
-                icon={<Icon as={Ionicons} name="arrow-back" />}
-                onPress={() => navigation.goBack()}
-                borderRadius="full"
-                _icon={{ color: "coolGray.700" }}
-                _pressed={{ bg: "coolGray.100" }}
-              />
-              <IconButton
-                icon={
-                  <Icon 
-                    as={Ionicons} 
-                    name={isFavorite ? "heart" : "heart-outline"} 
-                    color={isFavorite ? "red.500" : "coolGray.400"}
-                  />
-                }
-                onPress={handleFavoriteToggle}
-                isLoading={isLoading}
-                borderRadius="full"
-                _pressed={{ bg: "coolGray.100" }}
-              />
-            </HStack>
-            
             {/* Recipe title and info */}
             <VStack space={2}>
               <Heading size="xl" color="coolGray.800">
                 {recipe.name}
               </Heading>
               
-              <HStack space={4} alignItems="center">
-                <HStack space={1} alignItems="center">
-                  <Icon as={Ionicons} name="time-outline" size="sm" color="coolGray.500" />
-                  <Text color="coolGray.500">{recipe.time_estimate}</Text>
+              <HStack space={4} alignItems="center" justifyContent="space-between">
+                <HStack space={4} alignItems="center" flexWrap="wrap">
+                  <HStack space={1} alignItems="center">
+                    <Icon as={Ionicons} name="time-outline" size="sm" color="coolGray.500" />
+                    <Text color="coolGray.500">{recipe.time_estimate}</Text>
+                  </HStack>
+                  
+                  <HStack space={1} alignItems="center">
+                    <Icon as={Ionicons} name="people-outline" size="sm" color="coolGray.500" />
+                    <Text color="coolGray.500">
+                      {recipe.portions || recipe.servings || 2} {(recipe.portions || recipe.servings || 2) === 1 ? 'portion' : 'portions'}
+                    </Text>
+                  </HStack>
+                  
+                  <Badge 
+                    colorScheme={
+                      recipe.skill_level === 'beginner' ? 'green' : 
+                      recipe.skill_level === 'intermediate' ? 'orange' : 'red'
+                    }
+                    variant="solid"
+                    rounded="full"
+                  >
+                    {recipe.skill_level}
+                  </Badge>
                 </HStack>
                 
-                <Badge 
-                  colorScheme={
-                    recipe.skill_level === 'beginner' ? 'green' : 
-                    recipe.skill_level === 'intermediate' ? 'orange' : 'red'
+                {/* Favorite icon moved to align with cooking time and skill level */}
+                <IconButton
+                  icon={
+                    <Icon 
+                      as={Ionicons} 
+                      name={isFavorite ? "heart" : "heart-outline"} 
+                      color={isFavorite ? "red.500" : "coolGray.400"}
+                      size="md"
+                    />
                   }
-                  variant="solid"
-                  rounded="full"
-                >
-                  {recipe.skill_level}
-                </Badge>
+                  onPress={handleFavoriteToggle}
+                  isLoading={isLoading}
+                  borderRadius="full"
+                  _pressed={{ bg: "coolGray.100" }}
+                />
               </HStack>
+            </VStack>
+            
+            <Divider />
+            
+            {/* Ingredients Section */}
+            <VStack space={2}>
+              <Heading size="md" color="coolGray.700">
+                Ingredients
+              </Heading>
+              
+              <Box bg="coolGray.50" p={4} rounded="md">
+                <VStack space={2}>
+                  {recipe.ingredients && recipe.ingredients.map((ingredient, index) => {
+                    // Handle different ingredient formats
+                    let ingredientText = '';
+                    let measurement = '';
+                    
+                    if (typeof ingredient === 'string') {
+                      // Try to parse measurement and ingredient from string
+                      const match = ingredient.match(/^([\d./]+\s*[a-zA-Z]*)\s+(.+)$/);
+                      if (match) {
+                        measurement = match[1];
+                        ingredientText = match[2];
+                      } else {
+                        ingredientText = ingredient;
+                      }
+                    } else if (typeof ingredient === 'object') {
+                      // Handle object format with name and quantity properties
+                      ingredientText = ingredient.name || ingredient.ingredient || '';
+                      measurement = ingredient.quantity || ingredient.amount || ingredient.measurement || '';
+                    }
+                    
+                    return (
+                      <HStack key={index} space={2} alignItems="center">
+                        <Icon as={Ionicons} name="checkmark-circle-outline" size="sm" color="green.500" />
+                        <Text color="coolGray.700">
+                          {measurement ? (
+                            <Text>
+                              <Text fontWeight="bold">{measurement}</Text> {ingredientText}
+                            </Text>
+                          ) : (
+                            ingredientText
+                          )}
+                        </Text>
+                      </HStack>
+                    );
+                  })}
+                  
+                  {(!recipe.ingredients || recipe.ingredients.length === 0) && (
+                    <Text color="coolGray.500" italic>No ingredients information available</Text>
+                  )}
+                </VStack>
+              </Box>
             </VStack>
             
             <Divider />
@@ -298,40 +352,56 @@ const RecipeDetailScreen = ({ route, navigation }) => {
                 Instructions
               </Heading>
               
-              <Accordion allowMultiple defaultIndex={[0]}>
-                {recipe.steps.map((step, index) => (
-                  <Accordion.Item key={index}>
-                    <Accordion.Summary>
-                      <HStack space={2} alignItems="center" justifyContent="space-between" width="100%">
-                        <HStack space={2} alignItems="center" flex={1}>
-                          <Box 
-                            bg={getSkillColor(recipe.skill_level)} 
-                            rounded="full" 
-                            w={6} 
-                            h={6} 
-                            justifyContent="center" 
-                            alignItems="center"
-                          >
-                            <Text color="white" fontWeight="bold">
-                              {index + 1}
+              <Accordion allowToggle defaultIndex={[0]}>
+                {recipe.steps.map((step, index) => {
+                  // Enhance step with cooking details if not already present
+                  let enhancedStep = step;
+                  
+                  // Format the step to highlight measurements, temperatures, and times
+                  const formatStep = (text) => {
+                    if (!text) return '';
+                    
+                    // Highlight measurements (e.g., "2 cups", "350°F", "30 minutes")
+                    return text
+                      .replace(/(\d+(\.\d+)?)\s*(cup|tbsp|tsp|oz|g|ml|lb|kg|°F|°C|min|hour|minute)s?/gi, 
+                        (match, p1, p2, p3) => `<strong>${match}</strong>`)
+                      .split('<strong>').join('').split('</strong>').join('');
+                  };
+                  
+                  return (
+                    <Accordion.Item key={index}>
+                      <Accordion.Summary>
+                        <HStack space={2} alignItems="center" justifyContent="space-between" width="100%">
+                          <HStack space={2} alignItems="center" flex={1}>
+                            <Box 
+                              bg={getSkillColor(recipe.skill_level)} 
+                              rounded="full" 
+                              w={6} 
+                              h={6} 
+                              justifyContent="center" 
+                              alignItems="center"
+                            >
+                              <Text color="white" fontWeight="bold">
+                                {index + 1}
+                              </Text>
+                            </Box>
+                            <Text fontWeight="medium">
+                              Step {index + 1}
                             </Text>
+                          </HStack>
+                          <Box mr={2}>
+                            <Accordion.Icon />
                           </Box>
-                          <Text fontWeight="medium">
-                            Step {index + 1}
-                          </Text>
                         </HStack>
-                        <Box mr={2}>
-                          <Accordion.Icon />
-                        </Box>
-                      </HStack>
-                    </Accordion.Summary>
-                    <Accordion.Details>
-                      <Text ml={8} color="coolGray.600">
-                        {step}
-                      </Text>
-                    </Accordion.Details>
-                  </Accordion.Item>
-                ))}
+                      </Accordion.Summary>
+                      <Accordion.Details>
+                        <Text ml={8} color="coolGray.600">
+                          {formatStep(enhancedStep)}
+                        </Text>
+                      </Accordion.Details>
+                    </Accordion.Item>
+                  );
+                })}
               </Accordion>
             </VStack>
             

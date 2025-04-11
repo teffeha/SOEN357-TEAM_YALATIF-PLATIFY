@@ -20,22 +20,59 @@ export const fetchRecipes = createAsyncThunk(
 // Async thunk for saving a recipe to favorites
 export const saveRecipe = createAsyncThunk(
   'recipes/save',
-  async ({ recipe, userId }, { rejectWithValue }) => {
+  async ({ recipe, userId }, { rejectWithValue, getState }) => {
     try {
+      // Check if recipe already exists in favorites
+      const state = getState();
+      const currentFavorites = state.recipes.favoriteRecipes;
+      
+      // Create a consistent identifier for the recipe
+      const recipeNameStr = recipe.name || recipe.title || '';
+      const recipeStepsStr = recipe.steps ? JSON.stringify(recipe.steps) : '';
+      
+      // Check if this recipe already exists in favorites
+      const isDuplicate = currentFavorites.some(existingRecipe => {
+        const existingNameStr = existingRecipe.name || existingRecipe.title || '';
+        const existingStepsStr = existingRecipe.steps ? JSON.stringify(existingRecipe.steps) : '';
+        
+        // Compare name and steps to identify duplicates
+        return (
+          recipeNameStr.toLowerCase() === existingNameStr.toLowerCase() && 
+          recipeStepsStr === existingStepsStr
+        );
+      });
+      
+      if (isDuplicate) {
+        // Return the existing recipe without saving again
+        console.log('Recipe already exists in favorites, not adding duplicate');
+        return recipe;
+      }
+      
+      // Ensure recipe has all required fields
+      const recipeToSave = {
+        name: recipe.name || recipe.title || 'Unnamed Recipe',
+        skill_level: recipe.skill_level || 'beginner',
+        time_estimate: recipe.time_estimate || '30 minutes',
+        steps: recipe.steps || [],
+        ingredients: recipe.ingredients || [],
+        description: recipe.description || '',
+        ...recipe
+      };
+      
       // Save to Firestore
       const docRef = await addDoc(collection(db, 'favorites'), {
         userId,
-        recipe,
+        recipe: recipeToSave,
         createdAt: new Date()
       });
       
       // Save to AsyncStorage for offline access
       const existingRecipesJson = await AsyncStorage.getItem('favoriteRecipes');
       const existingRecipes = existingRecipesJson ? JSON.parse(existingRecipesJson) : [];
-      const updatedRecipes = [...existingRecipes, { id: docRef.id, ...recipe }];
+      const updatedRecipes = [...existingRecipes, { id: docRef.id, ...recipeToSave }];
       await AsyncStorage.setItem('favoriteRecipes', JSON.stringify(updatedRecipes));
       
-      return { id: docRef.id, ...recipe };
+      return { id: docRef.id, ...recipeToSave };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -52,11 +89,62 @@ export const fetchFavoriteRecipes = createAsyncThunk(
       const querySnapshot = await getDocs(q);
       
       const favorites = [];
+      const recipeIds = new Set(); // Track recipe IDs to prevent duplicates
+      
       querySnapshot.forEach((doc) => {
-        favorites.push({
-          id: doc.id,
-          ...doc.data().recipe
-        });
+        const docData = doc.data();
+        // Log the entire document data
+        console.log('Document data:', JSON.stringify(docData, null, 2));
+        
+        // Check if recipe data is nested or flat
+        const recipeData = docData.recipe || docData;
+        
+        // Log the structure to help debug
+        console.log('Recipe data structure:', JSON.stringify(recipeData, null, 2));
+        console.log('Recipe name:', recipeData.name);
+        
+        // Generate a unique ID for the recipe
+        const recipeId = doc.id || `recipe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Skip if we've already added this recipe (by ID)
+        if (recipeIds.has(recipeId)) {
+          console.log(`Skipping duplicate recipe with ID: ${recipeId}`);
+          return;
+        }
+        
+        // Also check for duplicates by name and content
+        const recipeName = recipeData.name || recipeData.title || '';
+        const recipeSteps = recipeData.steps ? JSON.stringify(recipeData.steps) : '';
+        const recipeSignature = `${recipeName.toLowerCase()}-${recipeSteps}`;
+        
+        // Skip if we've already added a recipe with the same name and steps
+        if (favorites.some(r => {
+          const rName = r.name || r.title || '';
+          const rSteps = r.steps ? JSON.stringify(r.steps) : '';
+          return `${rName.toLowerCase()}-${rSteps}` === recipeSignature;
+        })) {
+          console.log(`Skipping duplicate recipe: ${recipeName}`);
+          return;
+        }
+        
+        // Add the ID to our tracking set
+        recipeIds.add(recipeId);
+        
+        // Ensure recipe has all required fields
+        const recipe = {
+          id: recipeId,
+          // Use title as fallback for name
+          name: recipeData.name || recipeData.title || '',
+          skill_level: recipeData.skill_level || 'beginner',
+          time_estimate: recipeData.time_estimate || '30 minutes',
+          cooking_time: recipeData.cooking_time || recipeData.time_estimate || '30 minutes',
+          portions: recipeData.portions || recipeData.servings || 2,
+          steps: recipeData.steps || [],
+          ingredients: recipeData.ingredients || [],
+          description: recipeData.description || '',
+          ...recipeData
+        };
+        favorites.push(recipe);
       });
       
       // Update AsyncStorage for offline access
@@ -67,7 +155,26 @@ export const fetchFavoriteRecipes = createAsyncThunk(
       // If Firestore fails, try to get from AsyncStorage
       try {
         const storedRecipes = await AsyncStorage.getItem('favoriteRecipes');
-        return storedRecipes ? JSON.parse(storedRecipes) : [];
+        if (storedRecipes) {
+          const recipes = JSON.parse(storedRecipes);
+          // Ensure each recipe has all required fields
+          return recipes.map(recipe => {
+            // Don't use fallback for name if it exists
+            const recipeName = recipe.name !== undefined && recipe.name !== null ? recipe.name : '';
+            
+            return {
+              id: recipe.id || `recipe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              name: recipeName,
+              skill_level: recipe.skill_level || 'beginner',
+              time_estimate: recipe.time_estimate || '30 minutes',
+              steps: recipe.steps || [],
+              ingredients: recipe.ingredients || [],
+              description: recipe.description || '',
+              ...recipe
+            };
+          });
+        }
+        return [];
       } catch (storageError) {
         return rejectWithValue(error.message);
       }

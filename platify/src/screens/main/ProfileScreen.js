@@ -16,7 +16,8 @@ import {
   Divider,
   Button,
   useToast,
-  Spinner
+  Spinner,
+  ScrollView
 } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
 import { logoutUser } from '../../store/slices/authSlice';
@@ -89,7 +90,16 @@ const ProfileScreen = () => {
   };
 
   return (
-    <Box flex={1} bg="#F5F5F5" safeArea>
+    <Box 
+      flex={1} 
+      bg="#F5F5F5" 
+      _ios={{ safeAreaTop: true }}
+      _android={{ safeAreaTop: true }}
+    >
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
         <VStack space={4} p={4}>
           <Heading size="lg">
             Profile
@@ -219,8 +229,8 @@ const ProfileScreen = () => {
             Log Out
           </Button>
         </VStack>
-      </Box>
-    
+      </ScrollView>
+    </Box>
   );
 };
 
