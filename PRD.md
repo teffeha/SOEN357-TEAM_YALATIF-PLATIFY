@@ -97,16 +97,3 @@
 - Each ingredient will have an `id`, `name`, and optional `category` for filtering purposes.
 
 ---
-
-## Open Questions for Stakeholders
-1. Should users be able to request additional ingredients not listed in Firestore? If yes, how should this process be handled?  
-2. Should dietary restrictions and allergies also be stored in Firestore for consistency?  
-3. How should invalid inputs or empty results from OpenAI be handled? Retry logic or fallback recipes?  
-
----
-
-## MVP Milestones
-1. Week 1–2: Auth flow + Firebase integration for user data and ingredient list setup.  
-2. Week 3–4: AI search UI + strict ingredient selection tied to Firestore data.  
-3. Week 5: Recipe card rendering + save feature integration with Firebase.  
-4. Week 6: Metrics dashboard + testing and bug fixes.
