@@ -11,6 +11,7 @@ const SignUpScreen = require('../screens/auth/SignUpScreen').default;
 const DashboardScreen = require('../screens/main/DashboardScreen').default;
 const RecipeSearchScreen = require('../screens/main/RecipeSearchScreen').default;
 const RecipeDetailScreen = require('../screens/main/RecipeDetailScreen').default;
+const RecipeHistoryScreen = require('../screens/main/RecipeHistoryScreen').default;
 const FavoritesScreen = require('../screens/main/FavoritesScreen').default;
 const ProfileScreen = require('../screens/main/ProfileScreen').default;
 
@@ -83,6 +84,17 @@ const MainNavigator = () => {
         component={RecipeDetailScreen} 
         options={{
           title: 'Recipe Details',
+          headerTintColor: '#4CAF50',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+      />
+      <Stack.Screen 
+        name="RecipeHistory" 
+        component={RecipeHistoryScreen} 
+        options={{
+          title: 'Recipe History',
           headerTintColor: '#4CAF50',
           headerTitleStyle: {
             fontWeight: 'bold',

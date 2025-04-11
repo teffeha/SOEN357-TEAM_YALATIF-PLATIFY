@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updateMetrics } from '../../services/metricsService';
 import {
   Box, Text, Heading, VStack, HStack, Icon, Input, Button,
   Spinner, Select, CheckIcon, FormControl, Slider, Badge,
-  Pressable, ScrollView, Divider, FlatList, useToast
+  Pressable, ScrollView, Divider, FlatList, useToast, IconButton
 } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchIngredients, fetchIngredientCategories } from '../../store/slices/ingredientSlice';
@@ -40,26 +42,46 @@ const RecipeCard = ({ recipe, onPress }) => {
       >
         <VStack space={2}>
           <Heading size="md">
-            {recipe.title}
+            {recipe.title || recipe.name}
           </Heading>
           
           <Text color="gray.600" numberOfLines={2}>
             {recipe.description}
           </Text>
           
-          <HStack space={2} mt={1}>
-            <Badge colorScheme="green" variant="subtle" rounded="md">
-              {recipe.cooking_time} mins
+          <HStack space={2} mt={1} flexWrap="nowrap">
+            <Badge 
+              colorScheme="green" 
+              variant="subtle" 
+              rounded="md" 
+              px={2} 
+              minWidth="70px"
+              maxWidth="85px"
+              _text={{ noOfLines: 1, fontSize: "xs" }}
+            >
+              {recipe.cooking_time || recipe.time_estimate || '30'} 
             </Badge>
             
-            <Badge colorScheme="blue" variant="subtle" rounded="md">
-              {recipe.portions} portions
+            <Badge 
+              colorScheme="blue" 
+              variant="subtle" 
+              rounded="md" 
+              px={2}
+              minWidth="80px"
+              maxWidth="105px"
+              _text={{ noOfLines: 1, fontSize: "xs" }}
+            >
+              {recipe.portions || recipe.servings || '2'} servings
             </Badge>
             
             <Badge 
               colorScheme={recipe.skill_level === 'beginner' ? 'green' : recipe.skill_level === 'intermediate' ? 'orange' : 'red'} 
               variant="subtle" 
               rounded="md"
+              px={2}
+              minWidth="70px"
+              maxWidth="85px"
+              _text={{ noOfLines: 1, fontSize: "xs" }}
             >
               {recipe.skill_level}
             </Badge>
@@ -76,6 +98,52 @@ const RecipeSearchScreen = ({ navigation }) => {
   const toast = useToast();
   const { ingredients, categories, selectedIngredients, selectedCategory } = useSelector((state) => state.ingredients);
   const { recipes, isLoading } = useSelector((state) => state.recipes);
+  
+  // Save recipes to history and update metrics when recipes are loaded
+  useEffect(() => {
+    const saveRecipesToHistoryAndUpdateMetrics = async () => {
+      if (recipes && recipes.length > 0) {
+        try {
+          // Get existing history
+          const historyJson = await AsyncStorage.getItem('recipeHistory');
+          let historyData = [];
+          
+          if (historyJson) {
+            historyData = JSON.parse(historyJson);
+          }
+          
+          // Add all new recipes to history (without duplicate checking)
+          // Create a timestamp for this batch of recipes
+          const timestamp = new Date().toISOString();
+          
+          // Add all recipes from this search with the timestamp
+          const recipesWithTimestamp = recipes.map(recipe => ({
+            ...recipe,
+            generatedAt: timestamp
+          }));
+          
+          // Add new recipes to the beginning of history
+          const updatedHistory = [...recipesWithTimestamp, ...historyData];
+          
+          // Keep only the most recent 100 recipes (increased from 50)
+          const trimmedHistory = updatedHistory.slice(0, 100);
+          
+          // Save updated history
+          await AsyncStorage.setItem('recipeHistory', JSON.stringify(trimmedHistory));
+          
+          // Update metrics
+          await updateMetrics({
+            selectedIngredients,
+            recipes
+          });
+        } catch (error) {
+          console.error('Error saving recipes to history or updating metrics:', error);
+        }
+      }
+    };
+    
+    saveRecipesToHistoryAndUpdateMetrics();
+  }, [recipes, selectedIngredients]);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [portions, setPortions] = useState(1);
@@ -455,45 +523,75 @@ const RecipeSearchScreen = ({ navigation }) => {
               <FormControl mb={5}>
                 <HStack justifyContent="space-between" alignItems="center" mb={1}>
                   <FormControl.Label _text={{ fontWeight: "medium" }}>Portions</FormControl.Label>
-                  <Badge colorScheme="green" rounded="full" variant="solid">
-                    {portions}
-                  </Badge>
                 </HStack>
-                <Slider
-                  defaultValue={1}
-                  minValue={1}
-                  maxValue={10}
-                  step={1}
-                  onChange={v => setPortions(v)}
-                  colorScheme="green"
-                >
-                  <Slider.Track>
-                    <Slider.FilledTrack />
-                  </Slider.Track>
-                  <Slider.Thumb shadow={2} />
-                </Slider>
+                <HStack space={4} alignItems="center" justifyContent="center">
+                  <IconButton
+                    icon={<Icon as={Ionicons} name="remove" />}
+                    borderRadius="full"
+                    bg="green.500"
+                    _pressed={{ bg: "green.600" }}
+                    size="md"
+                    isDisabled={portions <= 1}
+                    onPress={() => setPortions(prev => Math.max(1, prev - 1))}
+                  />
+                  <Badge 
+                    colorScheme="green" 
+                    rounded="full" 
+                    variant="solid"
+                    minWidth="40px"
+                    py={1}
+                  >
+                    <Text color="white" fontWeight="bold" fontSize="md" textAlign="center">
+                      {portions}
+                    </Text>
+                  </Badge>
+                  <IconButton
+                    icon={<Icon as={Ionicons} name="add" />}
+                    borderRadius="full"
+                    bg="green.500"
+                    _pressed={{ bg: "green.600" }}
+                    size="md"
+                    isDisabled={portions >= 10}
+                    onPress={() => setPortions(prev => Math.min(10, prev + 1))}
+                  />
+                </HStack>
               </FormControl>
               
               <FormControl>
                 <HStack justifyContent="space-between" alignItems="center" mb={1}>
                   <FormControl.Label _text={{ fontWeight: "medium" }}>Days for Meal Plan</FormControl.Label>
-                  <Badge colorScheme="green" rounded="full" variant="solid">
-                    {days}
-                  </Badge>
                 </HStack>
-                <Slider
-                  defaultValue={1}
-                  minValue={1}
-                  maxValue={7}
-                  step={1}
-                  onChange={v => setDays(v)}
-                  colorScheme="green"
-                >
-                  <Slider.Track>
-                    <Slider.FilledTrack />
-                  </Slider.Track>
-                  <Slider.Thumb shadow={2} />
-                </Slider>
+                <HStack space={4} alignItems="center" justifyContent="center">
+                  <IconButton
+                    icon={<Icon as={Ionicons} name="remove" />}
+                    borderRadius="full"
+                    bg="green.500"
+                    _pressed={{ bg: "green.600" }}
+                    size="md"
+                    isDisabled={days <= 1}
+                    onPress={() => setDays(prev => Math.max(1, prev - 1))}
+                  />
+                  <Badge 
+                    colorScheme="green" 
+                    rounded="full" 
+                    variant="solid"
+                    minWidth="40px"
+                    py={1}
+                  >
+                    <Text color="white" fontWeight="bold" fontSize="md" textAlign="center">
+                      {days}
+                    </Text>
+                  </Badge>
+                  <IconButton
+                    icon={<Icon as={Ionicons} name="add" />}
+                    borderRadius="full"
+                    bg="green.500"
+                    _pressed={{ bg: "green.600" }}
+                    size="md"
+                    isDisabled={days >= 7}
+                    onPress={() => setDays(prev => Math.min(7, prev + 1))}
+                  />
+                </HStack>
               </FormControl>
             </Box>
             
@@ -502,23 +600,38 @@ const RecipeSearchScreen = ({ navigation }) => {
               <FormControl>
                 <HStack justifyContent="space-between" alignItems="center" mb={1}>
                   <FormControl.Label _text={{ fontWeight: "medium" }}>Max Cooking Time</FormControl.Label>
-                  <Badge colorScheme="green" rounded="full" variant="solid">
-                    {cookingTime} min
-                  </Badge>
                 </HStack>
-                <Slider
-                  defaultValue={60}
-                  minValue={15}
-                  maxValue={180}
-                  step={15}
-                  onChange={v => setCookingTime(v)}
-                  colorScheme="green"
-                >
-                  <Slider.Track>
-                    <Slider.FilledTrack />
-                  </Slider.Track>
-                  <Slider.Thumb shadow={2} />
-                </Slider>
+                <HStack space={4} alignItems="center" justifyContent="center">
+                  <IconButton
+                    icon={<Icon as={Ionicons} name="remove" />}
+                    borderRadius="full"
+                    bg="green.500"
+                    _pressed={{ bg: "green.600" }}
+                    size="md"
+                    isDisabled={cookingTime <= 15}
+                    onPress={() => setCookingTime(prev => Math.max(15, prev - 15))}
+                  />
+                  <Badge 
+                    colorScheme="green" 
+                    rounded="full" 
+                    variant="solid"
+                    minWidth="60px"
+                    py={1}
+                  >
+                    <Text color="white" fontWeight="bold" fontSize="md" textAlign="center">
+                      {cookingTime} min
+                    </Text>
+                  </Badge>
+                  <IconButton
+                    icon={<Icon as={Ionicons} name="add" />}
+                    borderRadius="full"
+                    bg="green.500"
+                    _pressed={{ bg: "green.600" }}
+                    size="md"
+                    isDisabled={cookingTime >= 180}
+                    onPress={() => setCookingTime(prev => Math.min(180, prev + 15))}
+                  />
+                </HStack>
               </FormControl>
             </Box>
             
