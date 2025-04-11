@@ -9,6 +9,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './src/services/firebase';
 import { setUser } from './src/store/slices/authSlice';
 import AppNavigator from './src/navigation/AppNavigator';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Ignore specific LogBox warnings
 LogBox.ignoreLogs([
@@ -17,6 +18,39 @@ LogBox.ignoreLogs([
   "AsyncStorage has been extracted from react-native",
   "Warning: ...",  // Add any other warnings you want to ignore
 ]);
+
+// Create custom theme with responsive values
+const theme = extendTheme({
+  colors: {
+    primary: {
+      50: '#e6f7ed',
+      100: '#c3ebd3',
+      200: '#9fdeb8',
+      300: '#7bd19c',
+      400: '#57c481',
+      500: '#34b765', // Primary color
+      600: '#2a9251',
+      700: '#1f6e3d',
+      800: '#154928',
+      900: '#0a2514',
+    },
+  },
+  components: {
+    Button: {
+      baseStyle: {
+        rounded: 'full',
+      },
+    },
+    Input: {
+      baseStyle: {
+        borderRadius: 'md',
+      },
+    },
+  },
+  config: {
+    initialColorMode: 'light',
+  },
+});
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -46,58 +80,33 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-
-  
   // Loading screen with animation
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>P</Text>
-        </View>
-        <Text style={styles.loadingTitle}>Platify</Text>
-        <ActivityIndicator size="large" color="#4CAF50" style={styles.loader} />
-        <Text style={styles.loadingSubtitle}>Preparing your culinary experience...</Text>
-        <StatusBar style="light" />
-      </SafeAreaView>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.loadingContainer}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>P</Text>
+          </View>
+          <Text style={styles.loadingTitle}>Platify</Text>
+          <ActivityIndicator size="large" color="#4CAF50" style={styles.loader} />
+          <Text style={styles.loadingSubtitle}>Preparing your culinary experience...</Text>
+          <StatusBar style="light" />
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
   
-  // Define theme for NativeBase
-  const theme = extendTheme({
-    colors: {
-      primary: {
-        50: '#e6f2e6',
-        100: '#c6e0c6',
-        200: '#a3cda3',
-        300: '#7fb97f',
-        400: '#5ca65c',
-        500: '#4CAF50', // Primary green color
-        600: '#3d8c3d',
-        700: '#2e692e',
-        800: '#1f461f',
-        900: '#0f230f',
-      },
-    },
-    components: {
-      Button: {
-        defaultProps: {
-          colorScheme: 'primary',
-        },
-      },
-    },
-  });
-
-
-  
   // Main app with navigation
   return (
-    <Provider store={store}>
-      <NativeBaseProvider theme={theme}>
-        <StatusBar style="dark" />
-        <AppNavigator />
-      </NativeBaseProvider>
-    </Provider>
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <NativeBaseProvider theme={theme}>
+          <StatusBar style="dark" />
+          <AppNavigator />
+        </NativeBaseProvider>
+      </Provider>
+    </SafeAreaProvider>
   );
 }
 
