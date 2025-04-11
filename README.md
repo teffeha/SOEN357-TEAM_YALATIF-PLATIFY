@@ -2,6 +2,8 @@
 
 Platify is a mobile application that helps users discover recipes based on ingredients they have at hand. The app provides personalized recipe recommendations, allows users to save their favorite recipes, and offers a user-friendly interface for an enjoyable cooking experience.
 
+![](platify/assets/soen357gif.gif)
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -42,34 +44,6 @@ Follow these steps to set up the project locally:
    ```bash
    yarn install
    ```
-
-3. **Set up Firebase**
-
-   The app uses Firebase for authentication and data storage. You'll need to create a Firebase project and configure it:
-
-   a. Go to the [Firebase Console](https://console.firebase.google.com/)
-   
-   b. Click "Add project" and follow the steps to create a new project
-   
-   c. In the Firebase console, add a new web app to your project
-   
-   d. Copy the Firebase configuration object
-   
-   e. Create a file named `firebaseConfig.js` in the `/src/config/` directory with the following content:
-
-   ```javascript
-   // src/config/firebaseConfig.js
-   export default {
-     apiKey: "YOUR_API_KEY",
-     authDomain: "YOUR_AUTH_DOMAIN",
-     projectId: "YOUR_PROJECT_ID",
-     storageBucket: "YOUR_STORAGE_BUCKET",
-     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-     appId: "YOUR_APP_ID"
-   };
-   ```
-
-   f. Replace the placeholder values with your Firebase configuration values
 
 
 ## Running the App
@@ -144,13 +118,7 @@ platify/
    npm install
    ```
 
-3. **Firebase connection issues**
-   
-   - Verify your Firebase configuration in `src/config/firebaseConfig.js`
-   - Make sure your Firebase project has the appropriate services enabled
-   - Check that your device has internet connectivity
-
-4. **Expo Go app not connecting**
+3. **Expo Go app not connecting**
    
    - Ensure your mobile device is on the same network as your development machine
    - Try using the "Tunnel" connection option in Expo by running:
