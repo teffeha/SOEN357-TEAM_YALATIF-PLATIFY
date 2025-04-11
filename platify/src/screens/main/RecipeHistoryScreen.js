@@ -1,19 +1,68 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Box, Text, Heading, VStack, HStack, Icon, Button, IconButton,
-  FlatList, Badge, Pressable, ScrollView, Spinner, useToast
+  FlatList, Badge, Pressable, ScrollView, Spinner, useToast,
+  Divider
 } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { getCurrentWeekId } from '../../services/metricsService';
 
 const RecipeHistoryScreen = () => {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentWeekId, setCurrentWeekId] = useState('');
   const navigation = useNavigation();
   const toast = useToast();
+
+  // Get the current week identifier
+  const getWeekId = () => {
+    const now = new Date();
+    const onejan = new Date(now.getFullYear(), 0, 1);
+    // Get the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+    const dayOfWeek = now.getDay();
+    // Adjust to make Monday day 0
+    const adjustedDayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    // Calculate the current date adjusted to the start of the week (Monday)
+    const adjustedDate = new Date(now);
+    adjustedDate.setDate(now.getDate() - adjustedDayOfWeek);
+    // Calculate the week number
+    const weekNum = Math.ceil((((adjustedDate - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+    // Return in YYYY-WW format
+    return `${now.getFullYear()}-${weekNum.toString().padStart(2, '0')}`;
+  };
+
+  // Format week identifier for display
+  const formatWeekDisplay = (weekId) => {
+    if (!weekId) return 'Unknown Week';
+    
+    const [year, week] = weekId.split('-');
+    return `Week ${week}, ${year}`;
+  };
+
+  // Group recipes by week
+  const groupRecipesByWeek = (recipeList) => {
+    // Initialize with current week
+    const weekId = getWeekId();
+    
+    const grouped = {};
+    
+    recipeList.forEach(recipe => {
+      // Extract or assign week ID
+      const recipeWeekId = recipe.weekId || weekId;
+      
+      if (!grouped[recipeWeekId]) {
+        grouped[recipeWeekId] = [];
+      }
+      
+      grouped[recipeWeekId].push(recipe);
+    });
+    
+    return grouped;
+  };
 
   const loadRecipeHistory = async () => {
     try {
@@ -21,7 +70,39 @@ const RecipeHistoryScreen = () => {
       const historyJson = await AsyncStorage.getItem('recipeHistory');
       if (historyJson) {
         const historyData = JSON.parse(historyJson);
-        setRecipes(historyData);
+        
+        // Ensure all recipes have a weekId
+        const weekId = getWeekId();
+        setCurrentWeekId(weekId);
+        
+        const updatedHistory = historyData.map(recipe => {
+          if (!recipe.weekId) {
+            // If no weekId, assign based on generatedAt date if available
+            if (recipe.generatedAt) {
+              const recipeDate = new Date(recipe.generatedAt);
+              const recipeDayOfWeek = recipeDate.getDay();
+              const recipeAdjustedDayOfWeek = recipeDayOfWeek === 0 ? 6 : recipeDayOfWeek - 1;
+              const recipeAdjustedDate = new Date(recipeDate);
+              recipeAdjustedDate.setDate(recipeDate.getDate() - recipeAdjustedDayOfWeek);
+              const recipeOnejan = new Date(recipeDate.getFullYear(), 0, 1);
+              const recipeWeekNum = Math.ceil((((recipeAdjustedDate - recipeOnejan) / 86400000) + recipeOnejan.getDay() + 1) / 7);
+              return {
+                ...recipe,
+                weekId: `${recipeDate.getFullYear()}-${recipeWeekNum.toString().padStart(2, '0')}`
+              };
+            }
+            // Default to current week if no date available
+            return {
+              ...recipe,
+              weekId
+            };
+          }
+          return recipe;
+        });
+        
+        // Save the updated history with weekIds
+        await AsyncStorage.setItem('recipeHistory', JSON.stringify(updatedHistory));
+        setRecipes(updatedHistory);
       }
     } catch (error) {
       console.error('Error loading recipe history:', error);
@@ -157,6 +238,10 @@ const RecipeHistoryScreen = () => {
     );
   };
 
+  const groupedRecipes = useMemo(() => {
+    return groupRecipesByWeek(recipes);
+  }, [recipes]);
+
   return (
     <Box flex={1} bg="#F5F5F5" safeArea>
       <Box px={4} py={4} bg="white">
@@ -187,9 +272,15 @@ const RecipeHistoryScreen = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {recipes.length > 0 ? (
-            recipes.map((recipe, index) => (
-              <RecipeCard key={index} recipe={recipe} index={index} />
+          {Object.keys(groupedRecipes).length > 0 ? (
+            Object.keys(groupedRecipes).map((weekId, index) => (
+              <Box key={index}>
+                <Heading size="md" mb={2}>{formatWeekDisplay(weekId)}</Heading>
+                <Divider mb={4} />
+                {groupedRecipes[weekId].map((recipe, recipeIndex) => (
+                  <RecipeCard key={recipeIndex} recipe={recipe} index={recipeIndex} />
+                ))}
+              </Box>
             ))
           ) : (
             <Box flex={1} justifyContent="center" alignItems="center" mt={10}>

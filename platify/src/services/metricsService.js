@@ -5,6 +5,40 @@ const AVERAGE_RECIPE_SEARCH_TIME_MINUTES = 25; // Average time to search for rec
 const AVERAGE_FOOD_WASTE_PER_UNUSED_INGREDIENT_GRAMS = 150; // Average food waste per unused ingredient
 
 /**
+ * Get the current week identifier (YYYY-WW format)
+ * Weeks start on Monday and end on Sunday
+ */
+const getCurrentWeekId = () => {
+  const now = new Date();
+  const onejan = new Date(now.getFullYear(), 0, 1);
+  // Get the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  const dayOfWeek = now.getDay();
+  // Adjust to make Monday day 0
+  const adjustedDayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  // Calculate the current date adjusted to the start of the week (Monday)
+  const adjustedDate = new Date(now);
+  adjustedDate.setDate(now.getDate() - adjustedDayOfWeek);
+  // Calculate the week number
+  const weekNum = Math.ceil((((adjustedDate - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+  // Return in YYYY-WW format
+  return `${now.getFullYear()}-${weekNum.toString().padStart(2, '0')}`;
+};
+
+/**
+ * Check if metrics need to be reset for a new week
+ * @param {Object} metrics - Current metrics object
+ * @returns {Boolean} - True if metrics should be reset
+ */
+const shouldResetMetrics = (metrics) => {
+  if (!metrics || !metrics.weekId) {
+    return true;
+  }
+  
+  const currentWeekId = getCurrentWeekId();
+  return metrics.weekId !== currentWeekId;
+};
+
+/**
  * Calculate and update metrics based on app usage
  * @param {Object} params - Parameters for metrics calculation
  * @param {Array} params.selectedIngredients - Ingredients used in recipe generation
@@ -22,11 +56,53 @@ export const updateMetrics = async (params) => {
       recipesGenerated: 0,
       recipesCompleted: 0,
       ingredientsUsed: 0,
-      lastUpdated: null
+      lastUpdated: null,
+      weekId: getCurrentWeekId()
     };
     
     if (metricsJson) {
-      metrics = JSON.parse(metricsJson);
+      const parsedMetrics = JSON.parse(metricsJson);
+      
+      // Check if we need to reset for a new week
+      if (shouldResetMetrics(parsedMetrics)) {
+        console.log('New week detected, resetting metrics');
+        // Keep historical data in a separate storage key
+        const historicalMetricsJson = await AsyncStorage.getItem('historicalMetrics');
+        let historicalMetrics = [];
+        
+        if (historicalMetricsJson) {
+          historicalMetrics = JSON.parse(historicalMetricsJson);
+        }
+        
+        // Only save if we have meaningful data
+        if (parsedMetrics.recipesGenerated > 0 || parsedMetrics.recipesCompleted > 0) {
+          historicalMetrics.push({
+            ...parsedMetrics,
+            endDate: new Date().toISOString()
+          });
+          
+          // Keep only the last 12 weeks
+          if (historicalMetrics.length > 12) {
+            historicalMetrics = historicalMetrics.slice(-12);
+          }
+          
+          await AsyncStorage.setItem('historicalMetrics', JSON.stringify(historicalMetrics));
+        }
+        
+        // Reset current metrics for the new week
+        metrics = {
+          timeSaved: 0,
+          foodWasteAvoided: 0,
+          recipesGenerated: 0,
+          recipesCompleted: 0,
+          ingredientsUsed: 0,
+          lastUpdated: new Date().toISOString(),
+          weekId: getCurrentWeekId()
+        };
+      } else {
+        // Continue with current week's metrics
+        metrics = parsedMetrics;
+      }
     }
     
     // Update only the recipes generated count
@@ -59,7 +135,8 @@ export const markRecipeCompleted = async (recipe) => {
       recipesGenerated: 0,
       recipesCompleted: 0,
       ingredientsUsed: 0,
-      lastUpdated: null
+      lastUpdated: null,
+      weekId: getCurrentWeekId()
     };
     
     if (metricsJson) {
@@ -184,25 +261,76 @@ export const getMetrics = async () => {
     const metricsJson = await AsyncStorage.getItem('userMetrics');
     
     if (metricsJson) {
-      return JSON.parse(metricsJson);
+      const metrics = JSON.parse(metricsJson);
+      
+      // Check if we need to reset for a new week
+      if (shouldResetMetrics(metrics)) {
+        console.log('New week detected when getting metrics, resetting');
+        
+        // Save current metrics to historical data
+        const historicalMetricsJson = await AsyncStorage.getItem('historicalMetrics');
+        let historicalMetrics = [];
+        
+        if (historicalMetricsJson) {
+          historicalMetrics = JSON.parse(historicalMetricsJson);
+        }
+        
+        // Only save if we have meaningful data
+        if (metrics.recipesGenerated > 0 || metrics.recipesCompleted > 0) {
+          historicalMetrics.push({
+            ...metrics,
+            endDate: new Date().toISOString()
+          });
+          
+          // Keep only the last 12 weeks
+          if (historicalMetrics.length > 12) {
+            historicalMetrics = historicalMetrics.slice(-12);
+          }
+          
+          await AsyncStorage.setItem('historicalMetrics', JSON.stringify(historicalMetrics));
+        }
+        
+        // Create new metrics for current week
+        const newMetrics = {
+          timeSaved: 0,
+          foodWasteAvoided: 0,
+          recipesGenerated: 0,
+          recipesCompleted: 0,
+          ingredientsUsed: 0,
+          lastUpdated: new Date().toISOString(),
+          weekId: getCurrentWeekId()
+        };
+        
+        await AsyncStorage.setItem('userMetrics', JSON.stringify(newMetrics));
+        return newMetrics;
+      }
+      
+      return metrics;
     }
     
     // Return default metrics if none exist
-    return {
+    const defaultMetrics = {
       timeSaved: 0,
       foodWasteAvoided: 0,
       recipesGenerated: 0,
+      recipesCompleted: 0,
       ingredientsUsed: 0,
-      lastUpdated: null
+      lastUpdated: new Date().toISOString(),
+      weekId: getCurrentWeekId()
     };
+    
+    await AsyncStorage.setItem('userMetrics', JSON.stringify(defaultMetrics));
+    return defaultMetrics;
   } catch (error) {
     console.error('Error getting metrics:', error);
     return {
       timeSaved: 0,
       foodWasteAvoided: 0,
       recipesGenerated: 0,
+      recipesCompleted: 0,
       ingredientsUsed: 0,
-      lastUpdated: null
+      lastUpdated: new Date().toISOString(),
+      weekId: getCurrentWeekId()
     };
   }
 };
@@ -216,12 +344,33 @@ export const resetMetrics = async () => {
       timeSaved: 0,
       foodWasteAvoided: 0,
       recipesGenerated: 0,
+      recipesCompleted: 0,
       ingredientsUsed: 0,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      weekId: getCurrentWeekId()
     }));
     return true;
   } catch (error) {
     console.error('Error resetting metrics:', error);
     return false;
+  }
+};
+
+/**
+ * Get historical metrics data
+ * @returns {Array} Array of historical weekly metrics
+ */
+export const getHistoricalMetrics = async () => {
+  try {
+    const historicalMetricsJson = await AsyncStorage.getItem('historicalMetrics');
+    
+    if (historicalMetricsJson) {
+      return JSON.parse(historicalMetricsJson);
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error getting historical metrics:', error);
+    return [];
   }
 };
