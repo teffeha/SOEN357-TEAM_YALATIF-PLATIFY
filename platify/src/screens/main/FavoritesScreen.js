@@ -33,6 +33,10 @@ const FavoritesScreen = ({ navigation }) => {
   }, [dispatch, user]);
 
   const handleRecipePress = (recipe) => {
+    // Ensure recipe has an ID before navigating
+    if (!recipe.id) {
+      console.warn('Recipe missing ID in FavoritesScreen');
+    }
     navigation.navigate('RecipeDetail', { recipe });
   };
 

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { markRecipeCompleted } from '../../services/metricsService';
 import { 
   Box, 
   Text, 
@@ -22,11 +24,33 @@ import { saveRecipe, removeRecipe } from '../../store/slices/recipeSlice';
 import { Platform } from 'react-native';
 
 const RecipeDetailScreen = ({ route, navigation }) => {
-  const { recipe } = route.params;
+  // Ensure recipe has a unique ID
+  const { recipe: originalRecipe } = route.params;
+  const recipe = React.useMemo(() => {
+    // If recipe doesn't have an ID, create one using name/title and steps hash for consistency
+    if (!originalRecipe.id) {
+      // Create a consistent hash based on recipe content to ensure the same recipe gets the same ID
+      const nameStr = originalRecipe.name || originalRecipe.title || '';
+      const stepsStr = originalRecipe.steps ? JSON.stringify(originalRecipe.steps) : '';
+      const instructionsStr = originalRecipe.instructions ? JSON.stringify(originalRecipe.instructions) : '';
+      const contentHash = `${nameStr}-${stepsStr || instructionsStr}`.split('').reduce(
+        (hash, char) => ((hash << 5) - hash) + char.charCodeAt(0), 0
+      ).toString(36);
+      
+      return {
+        ...originalRecipe,
+        id: `recipe-${nameStr.toLowerCase().replace(/\s+/g, '-')}-${contentHash}`
+      };
+    }
+    return originalRecipe;
+  }, [originalRecipe]);
+  
   const dispatch = useDispatch();
   const toast = useToast();
   const { user } = useSelector((state) => state.auth);
   const { favoriteRecipes, isLoading } = useSelector((state) => state.recipes);
+  const [completed, setCompleted] = useState(false);
+  const [completedAt, setCompletedAt] = useState(null);
   
   // State to track which accordion item is open
   const [openIndex, setOpenIndex] = useState(0);
@@ -42,6 +66,96 @@ const RecipeDetailScreen = ({ route, navigation }) => {
     (fav.title === title || fav.name === title) && 
     JSON.stringify(fav.steps) === JSON.stringify(recipe.steps)
   );
+  
+  // Check if recipe is already marked as completed
+  useEffect(() => {
+    const checkCompletionStatus = async () => {
+      try {
+        // First check completedRecipes list (more reliable)
+        const completedRecipesJson = await AsyncStorage.getItem('completedRecipes');
+        if (completedRecipesJson) {
+          const completedRecipes = JSON.parse(completedRecipesJson);
+          
+          // Check if this recipe's ID is in the completed list
+          if (recipe.id && completedRecipes.includes(recipe.id)) {
+            setCompleted(true);
+            
+            // Get completion date from history if available
+            const historyJson = await AsyncStorage.getItem('recipeHistory');
+            if (historyJson) {
+              const history = JSON.parse(historyJson);
+              const historyRecipe = history.find(item => item.id === recipe.id);
+              if (historyRecipe && historyRecipe.completedAt) {
+                setCompletedAt(historyRecipe.completedAt);
+              } else {
+                setCompletedAt(new Date().toISOString());
+              }
+            }
+            return; // Exit early if found in completed list
+          }
+          
+          // If not found by ID, check using content matching
+          // Create a consistent hash for this recipe
+          const nameStr = recipe.name || recipe.title || '';
+          const stepsStr = recipe.steps ? JSON.stringify(recipe.steps) : '';
+          const instructionsStr = recipe.instructions ? JSON.stringify(recipe.instructions) : '';
+          const contentHash = `${nameStr}-${stepsStr || instructionsStr}`.split('').reduce(
+            (hash, char) => ((hash << 5) - hash) + char.charCodeAt(0), 0
+          ).toString(36);
+          const generatedId = `recipe-${nameStr.toLowerCase().replace(/\s+/g, '-')}-${contentHash}`;
+          
+          if (completedRecipes.includes(generatedId)) {
+            setCompleted(true);
+            // Get completion date from history if available
+            const historyJson = await AsyncStorage.getItem('recipeHistory');
+            if (historyJson) {
+              const history = JSON.parse(historyJson);
+              const historyRecipe = history.find(item => item.id === generatedId);
+              if (historyRecipe && historyRecipe.completedAt) {
+                setCompletedAt(historyRecipe.completedAt);
+              } else {
+                setCompletedAt(new Date().toISOString());
+              }
+            }
+            return; // Exit early if found in completed list
+          }
+        }
+        
+        // If not found in completedRecipes, check recipe history as a fallback
+        const historyJson = await AsyncStorage.getItem('recipeHistory');
+        if (historyJson) {
+          const history = JSON.parse(historyJson);
+          // Find this recipe in history using precise matching
+          const historyRecipe = history.find(item => {
+            // First try to match by ID (most accurate)
+            if (item.id && recipe.id && item.id === recipe.id) {
+              return true;
+            }
+            
+            // If no ID match, try to match by name/title AND steps/instructions (more precise)
+            if ((item.name === recipe.name || item.title === recipe.title) && 
+                ((item.steps && recipe.steps && 
+                  JSON.stringify(item.steps) === JSON.stringify(recipe.steps)) ||
+                 (item.instructions && recipe.instructions && 
+                  JSON.stringify(item.instructions) === JSON.stringify(recipe.instructions)))) {
+              return true;
+            }
+            
+            return false;
+          });
+          
+          if (historyRecipe && historyRecipe.completed) {
+            setCompleted(true);
+            setCompletedAt(historyRecipe.completedAt);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking recipe completion status:', error);
+      }
+    };
+    
+    checkCompletionStatus();
+  }, [recipe]);
   
   // Handle favorite toggle
   const handleFavoriteToggle = async () => {
@@ -82,6 +196,52 @@ const RecipeDetailScreen = ({ route, navigation }) => {
         _text: { color: "white" },
         borderRadius: "md",
         marginBottom: 4
+      });
+    }
+  };
+  
+  // Handle marking recipe as completed
+  const handleRecipeCompletion = async () => {
+    try {
+      if (!completed) {
+        // Ensure we're using the recipe with the proper ID
+        const recipeWithId = recipe;
+        
+        // Mark recipe as completed
+        await markRecipeCompleted(recipeWithId);
+        setCompleted(true);
+        setCompletedAt(new Date().toISOString());
+        
+        // Also update the completedRecipes list directly for redundancy
+        try {
+          const completedRecipesJson = await AsyncStorage.getItem('completedRecipes');
+          let completedRecipes = [];
+          if (completedRecipesJson) {
+            completedRecipes = JSON.parse(completedRecipesJson);
+          }
+          
+          if (!completedRecipes.includes(recipeWithId.id)) {
+            completedRecipes.push(recipeWithId.id);
+            await AsyncStorage.setItem('completedRecipes', JSON.stringify(completedRecipes));
+          }
+        } catch (storageError) {
+          console.error('Error updating completedRecipes:', storageError);
+        }
+        
+        toast.show({
+          description: "Recipe marked as completed!",
+          placement: "top",
+          status: "success",
+          duration: 2000
+        });
+      }
+    } catch (error) {
+      console.error('Error marking recipe as completed:', error);
+      toast.show({
+        description: "Error marking recipe as completed",
+        placement: "top",
+        status: "error",
+        duration: 2000
       });
     }
   };
@@ -191,7 +351,8 @@ const RecipeDetailScreen = ({ route, navigation }) => {
                       <HStack space={2} alignItems="center" justifyContent="space-between" width="100%">
                         <HStack space={2} alignItems="center" flex={1}>
                           <Box 
-                            bg={getSkillColor(skillLevel)} 
+
+                            bg={getSkillColor(recipe.skill_level)} 
                             rounded="full" 
                             w={6} 
                             h={6} 
@@ -235,6 +396,35 @@ const RecipeDetailScreen = ({ route, navigation }) => {
                 {'\n'}• Let the dish rest for a few minutes before serving for better flavor.
               </Text>
             </VStack>
+            
+            {/* Mark as Completed Button */}
+            <Box p={4} mt={2}>
+              <Pressable
+                disabled={completed}
+                onPress={handleRecipeCompletion}
+                bg={completed ? "green.100" : "green.500"}
+                _pressed={{ bg: completed ? "green.100" : "green.600" }}
+                py={3}
+                rounded="md"
+              >
+                <HStack space={2} justifyContent="center" alignItems="center">
+                  <Icon 
+                    as={Ionicons} 
+                    name={completed ? "checkmark-circle" : "checkmark-circle-outline"} 
+                    color={completed ? "green.500" : "white"} 
+                    size="sm" 
+                  />
+                  <Text color={completed ? "green.500" : "white"} fontWeight="medium">
+                    {completed ? "Completed" : "Mark as Completed"}
+                  </Text>
+                </HStack>
+              </Pressable>
+              {completed && completedAt && (
+                <Text fontSize="xs" color="coolGray.500" textAlign="center" mt={1}>
+                  Completed on {new Date(completedAt).toLocaleDateString()}
+                </Text>
+              )}
+            </Box>
           </VStack>
         </ScrollView>
       </Box>

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   Box, 
   Text, 
@@ -14,17 +15,51 @@ import {
   Avatar,
   Divider,
   Button,
-  useToast
+  useToast,
+  Spinner
 } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
 import { logoutUser } from '../../store/slices/authSlice';
+import { getMetrics } from '../../services/metricsService';
 
 const ProfileScreen = () => {
   const dispatch = useDispatch();
   const toast = useToast();
   const { user } = useSelector((state) => state.auth);
-  const { metrics } = useSelector((state) => state.recipes);
-
+  const [userMetrics, setUserMetrics] = useState({
+    timeSaved: 0,
+    foodWasteAvoided: 0,
+    recipesGenerated: 0,
+    recipesCompleted: 0,
+    ingredientsUsed: 0,
+    lastUpdated: null
+  });
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch metrics
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        setLoading(true);
+        const metrics = await getMetrics();
+        if (metrics) {
+          setUserMetrics(metrics);
+        }
+      } catch (error) {
+        console.error('Error loading metrics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadMetrics();
+    
+    // Set up an interval to refresh metrics every minute
+    const metricsInterval = setInterval(loadMetrics, 60000);
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(metricsInterval);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -79,19 +114,60 @@ const ProfileScreen = () => {
           <Divider />
           
           <Box bg="white" rounded="lg" shadow={2} p={4}>
-            <Heading size="sm" mb={4}>
-              My Stats
-            </Heading>
-            
-            <HStack justifyContent="space-between" mb={2}>
-              <Text color="coolGray.600">Time Saved</Text>
-              <Text fontWeight="bold">{metrics.timeSaved || 0} minutes</Text>
+            <HStack justifyContent="space-between" alignItems="center" mb={4}>
+              <Heading size="sm">
+                My Stats
+              </Heading>
+              {loading && <Spinner size="sm" color="green.500" />}
             </HStack>
             
-            <HStack justifyContent="space-between">
-              <Text color="coolGray.600">Food Waste Avoided</Text>
-              <Text fontWeight="bold">{metrics.foodWasteAvoided || 0} grams</Text>
-            </HStack>
+            <VStack space={3}>
+              <HStack justifyContent="space-between" alignItems="center">
+                <HStack space={2} alignItems="center">
+                  <Icon as={Ionicons} name="time-outline" size="sm" color="green.500" />
+                  <Text color="coolGray.600">Time Saved</Text>
+                </HStack>
+                <Text fontWeight="bold">{userMetrics.timeSaved || 0} minutes</Text>
+              </HStack>
+              
+              <HStack justifyContent="space-between" alignItems="center">
+                <HStack space={2} alignItems="center">
+                  <Icon as={Ionicons} name="leaf-outline" size="sm" color="green.500" />
+                  <Text color="coolGray.600">Food Waste Avoided</Text>
+                </HStack>
+                <Text fontWeight="bold">{userMetrics.foodWasteAvoided || 0} grams</Text>
+              </HStack>
+              
+              <HStack justifyContent="space-between" alignItems="center">
+                <HStack space={2} alignItems="center">
+                  <Icon as={Ionicons} name="restaurant-outline" size="sm" color="blue.500" />
+                  <Text color="coolGray.600">Recipes Generated</Text>
+                </HStack>
+                <Text fontWeight="bold">{userMetrics.recipesGenerated || 0}</Text>
+              </HStack>
+              
+              <HStack justifyContent="space-between" alignItems="center">
+                <HStack space={2} alignItems="center">
+                  <Icon as={Ionicons} name="checkmark-circle-outline" size="sm" color="emerald.500" />
+                  <Text color="coolGray.600">Recipes Completed</Text>
+                </HStack>
+                <Text fontWeight="bold">{userMetrics.recipesCompleted || 0}</Text>
+              </HStack>
+              
+              <HStack justifyContent="space-between" alignItems="center">
+                <HStack space={2} alignItems="center">
+                  <Icon as={Ionicons} name="nutrition-outline" size="sm" color="blue.500" />
+                  <Text color="coolGray.600">Ingredients Used</Text>
+                </HStack>
+                <Text fontWeight="bold">{userMetrics.ingredientsUsed || 0}</Text>
+              </HStack>
+              
+              {userMetrics.lastUpdated && (
+                <Text fontSize="xs" color="coolGray.400" textAlign="right" mt={1}>
+                  Last updated: {new Date(userMetrics.lastUpdated).toLocaleString()}
+                </Text>
+              )}
+            </VStack>
           </Box>
           
           <Box bg="white" rounded="lg" shadow={2} p={4}>

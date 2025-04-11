@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
@@ -15,6 +15,7 @@ import {
   Badge,
   Spinner
 } from 'native-base';
+import { getMetrics } from '../../services/metricsService';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchFavoriteRecipes } from '../../store/slices/recipeSlice';
 
@@ -28,13 +29,13 @@ const MetricCard = ({ title, value, icon, color }) => {
       flex={1} 
       m={2}
     >
-      <HStack space={2} alignItems="center">
+      <HStack space={2} alignItems="center" flexWrap="wrap">
         <Icon as={Ionicons} name={icon} size="md" color={color} />
-        <Text fontSize="md" fontWeight="medium">
+        <Text fontSize="md" fontWeight="medium" isTruncated numberOfLines={1} flex={1}>
           {title}
         </Text>
       </HStack>
-      <Text fontSize="2xl" fontWeight="bold" mt={2} color={color}>
+      <Text fontSize="2xl" fontWeight="bold" mt={2} color={color} adjustsFontSizeToFit numberOfLines={1}>
         {value}
       </Text>
     </Box>
@@ -110,8 +111,15 @@ const RecipeCard = ({ recipe, onPress }) => {
 const DashboardScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { favoriteRecipes, isLoading, metrics } = useSelector((state) => state.recipes);
+  const { favoriteRecipes, isLoading } = useSelector((state) => state.recipes);
+  const [userMetrics, setUserMetrics] = useState({
+    timeSaved: 0,
+    foodWasteAvoided: 0,
+    recipesGenerated: 0,
+    ingredientsUsed: 0
+  });
 
+  // Fetch favorite recipes
   useEffect(() => {
     let isMounted = true;
     
@@ -124,6 +132,28 @@ const DashboardScreen = ({ navigation }) => {
       isMounted = false;
     };
   }, [dispatch, user]);
+  
+  // Fetch metrics
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        const metrics = await getMetrics();
+        if (metrics) {
+          setUserMetrics(metrics);
+        }
+      } catch (error) {
+        console.error('Error loading metrics:', error);
+      }
+    };
+    
+    loadMetrics();
+    
+    // Set up an interval to refresh metrics every 30 seconds
+    const metricsInterval = setInterval(loadMetrics, 30000);
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(metricsInterval);
+  }, []);
 
   const handleRecipePress = (recipe) => {
     navigation.navigate('RecipeDetail', { recipe });
@@ -143,17 +173,64 @@ const DashboardScreen = ({ navigation }) => {
           <HStack>
             <MetricCard 
               title="Time Saved" 
-              value={`${metrics.timeSaved || 0} min`} 
+              value={`${userMetrics.timeSaved || 0} min`} 
               icon="time-outline" 
               color="green.500" 
             />
             <MetricCard 
               title="Food Waste Avoided" 
-              value={`${metrics.foodWasteAvoided || 0} g`} 
+              value={`${userMetrics.foodWasteAvoided || 0} g`} 
               icon="leaf-outline" 
               color="green.500" 
             />
           </HStack>
+          
+          <HStack>
+            <MetricCard 
+              title="Recipes Generated" 
+              value={userMetrics.recipesGenerated || 0} 
+              icon="restaurant-outline" 
+              color="blue.500" 
+              flexWrap="wrap"
+              onPress={() => navigation.navigate('RecipeHistory')}
+            />
+            <MetricCard 
+              title="Ingredients Used" 
+              value={userMetrics.ingredientsUsed || 0} 
+              icon="nutrition-outline" 
+              color="blue.500" 
+              onPress={() => navigation.navigate('RecipeHistory')}
+            />
+          </HStack>
+          
+          <Divider my={2} />
+          
+          <HStack justifyContent="space-between" alignItems="center">
+            <Heading size="sm">
+              Recipe History
+            </Heading>
+            <Pressable onPress={() => navigation.navigate('RecipeHistory')}>
+              <Text color="green.500" fontWeight="medium">
+                See All
+              </Text>
+            </Pressable>
+          </HStack>
+          
+          <Pressable 
+            onPress={() => navigation.navigate('RecipeHistory')}
+            mb={4}
+          >
+            <Box bg="white" p={4} rounded="lg" shadow={2}>
+              <HStack space={3} alignItems="center">
+                <Icon as={Ionicons} name="time-outline" size="lg" color="green.500" />
+                <VStack>
+                  <Text fontWeight="bold" fontSize="md">Recipe History</Text>
+                  <Text color="gray.500" fontSize="sm">View your previously generated recipes</Text>
+                </VStack>
+                <Icon as={Ionicons} name="chevron-forward" ml="auto" color="gray.400" />
+              </HStack>
+            </Box>
+          </Pressable>
           
           <Divider my={2} />
           
