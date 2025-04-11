@@ -2,7 +2,7 @@
 
 Platify is a mobile application that helps users discover recipes based on ingredients they have at hand. The app provides personalized recipe recommendations, allows users to save their favorite recipes, and offers a user-friendly interface for an enjoyable cooking experience.
 
-![](platify/assets/soen357gif.gif)
+![](platify/assets/soen357gif2.gif)
 
 ## Table of Contents
 
