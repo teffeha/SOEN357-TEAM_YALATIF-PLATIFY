@@ -44,6 +44,16 @@ Follow these steps to set up the project locally:
    ```bash
    yarn install
    ```
+3. **Insert your own OpenAI API key**
+
+   Inside [openai.js](platify/src/services/openai.js):
+   ```bash
+      // Initialize OpenAI client
+   const openai = new OpenAI({
+     apiKey: 'apikey', // Replace with your actual API key or use environment variables
+     dangerouslyAllowBrowser: true // Only for development, use backend in production
+   });
+   ```
 
 
 ## Running the App
