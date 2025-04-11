@@ -53,6 +53,12 @@ const RecipeCard = ({ recipe, onPress }) => {
     }
   };
 
+  // Normalize recipe properties with fallbacks
+  const title = recipe.title || recipe.name || "Untitled Recipe";
+  const cookingTime = recipe.cooking_time || (recipe.time_estimate ? parseInt(recipe.time_estimate) : 0);
+  const portions = recipe.portions || recipe.servings || 0;
+  const skillLevel = recipe.skill_level || recipe.skillLevel || "beginner";
+
   return (
     <Pressable onPress={onPress}>
       <Box 
@@ -62,30 +68,39 @@ const RecipeCard = ({ recipe, onPress }) => {
         p={4} 
         m={2}
         borderLeftWidth={4}
-        borderLeftColor={getSkillColor(recipe.skill_level)}
+        borderLeftColor={getSkillColor(skillLevel)}
       >
         <HStack justifyContent="space-between" alignItems="center">
           <VStack space={1} flex={1}>
             <Text fontSize="md" fontWeight="bold" numberOfLines={1}>
-              {recipe.name}
+              {title}
             </Text>
-            <HStack space={2} alignItems="center">
-              <Icon as={Ionicons} name="time-outline" size="xs" color="gray.500" />
-              <Text fontSize="xs" color="gray.500">
-                {recipe.time_estimate}
-              </Text>
+            <HStack space={4} alignItems="center">
+              <HStack space={1} alignItems="center">
+                <Icon as={Ionicons} name="time-outline" size="xs" color="gray.500" />
+                <Text fontSize="xs" color="gray.500">
+                  {cookingTime} mins
+                </Text>
+              </HStack>
+              
+              <HStack space={1} alignItems="center">
+                <Icon as={Ionicons} name="people-outline" size="xs" color="gray.500" />
+                <Text fontSize="xs" color="gray.500">
+                  {portions} portions
+                </Text>
+              </HStack>
             </HStack>
           </VStack>
           <Badge 
             colorScheme={
-              recipe.skill_level === 'beginner' ? 'green' : 
-              recipe.skill_level === 'intermediate' ? 'orange' : 'red'
+              skillLevel === 'beginner' ? 'green' : 
+              skillLevel === 'intermediate' ? 'orange' : 'red'
             }
             variant="solid"
             rounded="full"
             _text={{ fontSize: 'xs' }}
           >
-            {recipe.skill_level}
+            {skillLevel}
           </Badge>
         </HStack>
       </Box>
@@ -234,10 +249,10 @@ const DashboardScreen = ({ navigation }) => {
             <Center flex={1}>
               <Spinner size="lg" color="green.500" />
             </Center>
-          ) : favoriteRecipes.length > 0 ? (
+          ) : favoriteRecipes && favoriteRecipes.length > 0 ? (
             <FlatList
               data={favoriteRecipes.slice(0, 5)} // Show only first 5 favorites
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.id || item.recipe_id || String(Math.random())}
               renderItem={({ item }) => (
                 <RecipeCard 
                   recipe={item} 
@@ -247,14 +262,14 @@ const DashboardScreen = ({ navigation }) => {
               showsVerticalScrollIndicator={false}
             />
           ) : (
-            <Center flex={1}>
+            <Center py={10} bg="white" rounded="lg" shadow={1}>
               <Icon 
                 as={Ionicons} 
                 name="heart-outline" 
                 size="4xl" 
                 color="gray.300" 
               />
-              <Text color="gray.500" mt={2}>
+              <Text color="gray.500" mt={2} textAlign="center">
                 No favorite recipes yet
               </Text>
               <Pressable 

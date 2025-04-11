@@ -59,44 +59,61 @@ const FavoritesScreen = ({ navigation }) => {
     }
   };
 
-  const renderItem = ({ item }) => (
-    <Box 
-      bg="white" 
-      rounded="lg" 
-      shadow={2} 
-      p={4} 
-      m={2}
-      borderLeftWidth={4}
-      borderLeftColor={getSkillColor(item.skill_level)}
-    >
-      <Pressable onPress={() => handleRecipePress(item)}>
-        <HStack justifyContent="space-between" alignItems="center">
-          <VStack space={1} flex={1}>
-            <Text fontSize="md" fontWeight="bold" numberOfLines={1}>
-              {item.name}
-            </Text>
-            <HStack space={2} alignItems="center">
-              <Icon as={Ionicons} name="time-outline" size="xs" color="gray.600" />
-              <Text fontSize="xs" color="gray.600">
-                {item.time_estimate}
+  const renderItem = ({ item }) => {
+    // Normalize recipe properties with fallbacks
+    const title = item.title || item.name || "Untitled Recipe";
+    const cookingTime = item.cooking_time || (item.time_estimate ? parseInt(item.time_estimate) : 0);
+    const portions = item.portions || item.servings || 0;
+    const skillLevel = item.skill_level || item.skillLevel || "beginner";
+    
+    return (
+      <Box 
+        bg="white" 
+        rounded="lg" 
+        shadow={2} 
+        p={4} 
+        m={2}
+        borderLeftWidth={4}
+        borderLeftColor={getSkillColor(skillLevel)}
+      >
+        <Pressable onPress={() => handleRecipePress(item)}>
+          <HStack justifyContent="space-between" alignItems="center">
+            <VStack space={1} flex={1}>
+              <Text fontSize="md" fontWeight="bold" numberOfLines={1}>
+                {title}
               </Text>
-            </HStack>
-          </VStack>
-          <Badge 
-            colorScheme={
-              item.skill_level === 'beginner' ? 'green' : 
-              item.skill_level === 'intermediate' ? 'orange' : 'red'
-            }
-            variant="solid"
-            rounded="full"
-            _text={{ fontSize: 'xs' }}
-          >
-            {item.skill_level}
-          </Badge>
-        </HStack>
-      </Pressable>
-    </Box>
-  );
+              <HStack space={4} alignItems="center">
+                <HStack space={1} alignItems="center">
+                  <Icon as={Ionicons} name="time-outline" size="xs" color="gray.600" />
+                  <Text fontSize="xs" color="gray.600">
+                    {cookingTime} mins
+                  </Text>
+                </HStack>
+                
+                <HStack space={1} alignItems="center">
+                  <Icon as={Ionicons} name="people-outline" size="xs" color="gray.600" />
+                  <Text fontSize="xs" color="gray.600">
+                    {portions} portions
+                  </Text>
+                </HStack>
+              </HStack>
+            </VStack>
+            <Badge 
+              colorScheme={
+                skillLevel === 'beginner' ? 'green' : 
+                skillLevel === 'intermediate' ? 'orange' : 'red'
+              }
+              variant="solid"
+              rounded="full"
+              _text={{ fontSize: 'xs' }}
+            >
+              {skillLevel}
+            </Badge>
+          </HStack>
+        </Pressable>
+      </Box>
+    );
+  };
 
   const renderHiddenItem = ({ item }) => (
     <HStack flex={1} pl={2} pr={2} my={2} ml={2} mr={2}>
@@ -106,68 +123,53 @@ const FavoritesScreen = ({ navigation }) => {
         bg="red.500"
         justifyContent="center"
         alignItems="center"
-        onPress={() => handleDeleteRecipe(item.id)}
-        _pressed={{ opacity: 0.5 }}
         rounded="lg"
+        onPress={() => handleDeleteRecipe(item.id)}
       >
-        <Icon as={Ionicons} name="trash" color="white" size="sm" />
+        <Icon as={Ionicons} name="trash" size="sm" color="white" />
       </Pressable>
     </HStack>
+  );
+
+  const emptyList = () => (
+    <Center flex={1} p={5}>
+      <Icon as={Ionicons} name="heart" size="4xl" color="gray.300" mb={4} />
+      <Heading size="md" color="gray.500" mb={2}>No Favorite Recipes</Heading>
+      <Text textAlign="center" color="gray.400">
+        Your saved recipes will appear here. Swipe left to remove a recipe from favorites.
+      </Text>
+    </Center>
   );
 
   return (
     <Box flex={1} bg="#F5F5F5" safeArea>
       <VStack space={4} flex={1} p={4}>
-        <Heading size="lg">
+        <Heading size="lg" color="coolGray.800">
           Favorite Recipes
         </Heading>
-          
-          <Divider />
-          
-          {isLoading ? (
-            <Center flex={1}>
-              <Spinner size="lg" color="green.500" />
-            </Center>
-          ) : favoriteRecipes.length > 0 ? (
-            <SwipeListView
-              data={favoriteRecipes}
-              renderItem={renderItem}
-              renderHiddenItem={renderHiddenItem}
-              rightOpenValue={-70}
-              previewRowKey={'0'}
-              previewOpenValue={-40}
-              previewOpenDelay={3000}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <Center flex={1}>
-              <Icon 
-                as={Ionicons} 
-                name="heart-outline" 
-                size="4xl" 
-                color="gray.300" 
+        
+        {isLoading ? (
+          <Center flex={1}>
+            <Spinner size="lg" color="green.500" />
+          </Center>
+        ) : (
+          <Box flex={1}>
+            {favoriteRecipes && favoriteRecipes.length > 0 ? (
+              <SwipeListView
+                data={favoriteRecipes}
+                renderItem={renderItem}
+                renderHiddenItem={renderHiddenItem}
+                rightOpenValue={-70}
+                keyExtractor={(item) => item.id || item.recipe_id || String(Math.random())}
+                showsVerticalScrollIndicator={false}
               />
-              <Text color="gray.600" mt={2}>
-                No favorite recipes yet
-              </Text>
-              <Pressable 
-                mt={4} 
-                bg="green.500" 
-                px={4} 
-                py={2} 
-                rounded="md"
-                onPress={() => navigation.navigate('Search')}
-              >
-                <Text color="white" fontWeight="medium">
-                  Find Recipes
-                </Text>
-              </Pressable>
-            </Center>
-          )}
-        </VStack>
-      </Box>
-
+            ) : (
+              emptyList()
+            )}
+          </Box>
+        )}
+      </VStack>
+    </Box>
   );
 };
 
